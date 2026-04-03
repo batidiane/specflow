@@ -1,0 +1,15 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "specflow",
+  "owner": {
+    "name": "batidiane",
+    "url": "https://github.com/batidiane/specflow"
+  },
+  "plugins": [
+    {
+      "name": "specflow",
+      "source": "./",
+      "description": "Specification-Driven Development toolkit: EARS requirements, Prompt Contracts, GitHub Projects management"
+    }
+  ]
+}

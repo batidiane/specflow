@@ -148,9 +148,19 @@ gh issue create --repo {owner}/{repo} \
   --label "{domain-label},specflow,{effort}" \
   --body "{full-prompt-contract-body}"
 ```
-Then link to parent:
+Then link to parent using the GraphQL `addSubIssue` mutation (do NOT use `gh issue edit --add-sub-issue` — it is unreliable):
 ```bash
-gh issue edit {parent-issue-number} --add-sub-issue {child-issue-number} --repo {owner}/{repo}
+PARENT_ID=$(gh issue view {parent-issue-number} --repo {owner}/{repo} --json id --jq .id)
+CHILD_ID=$(gh issue view {child-issue-number} --repo {owner}/{repo} --json id --jq .id)
+
+gh api graphql -f query='
+  mutation($parentId: ID!, $childId: ID!) {
+    addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
+      issue { id title }
+      subIssue { id title }
+    }
+  }
+' -f parentId="$PARENT_ID" -f childId="$CHILD_ID"
 ```
 
 ### Phase 4: Add to Project (skip if milestones-only)

@@ -111,12 +111,32 @@ BODY
 )"
 ```
 
-### Link sub-issue to parent
+### Link sub-issue to parent (GraphQL — required for reliability)
+
+The `gh issue edit --add-sub-issue` CLI flag is unreliable. Always use the
+GraphQL `addSubIssue` mutation instead. This requires node IDs, not issue numbers.
+
 ```bash
-gh issue edit {parent-number} \
-  --add-sub-issue {child-number} \
-  --repo {owner}/{repo}
+# Step 1: Get node IDs for both parent and child issues
+PARENT_ID=$(gh issue view {parent-number} --repo {owner}/{repo} --json id --jq .id)
+CHILD_ID=$(gh issue view {child-number} --repo {owner}/{repo} --json id --jq .id)
+
+# Step 2: Link via GraphQL addSubIssue mutation
+gh api graphql -f query='
+  mutation($parentId: ID!, $childId: ID!) {
+    addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
+      issue { id title }
+      subIssue { id title }
+    }
+  }
+' -f parentId="$PARENT_ID" -f childId="$CHILD_ID"
 ```
+
+**Important:**
+- Both issues must already exist before linking
+- Both issues must be in the same repository
+- If the child already has a different parent, add `replaceParent: true` to the input
+- On success, the response includes both issue titles for verification
 
 ---
 

@@ -42,8 +42,11 @@ Before running:
    The FORMAT defines the exact file outputs.
    The GOAL is the acceptance criterion.
 
-   Invoke the `superpowers:test-driven-development` skill (or the project's `/triad` command
-   if it exists) with the full Prompt Contract as the task specification.
+   **Skill resolution (check in this order):**
+   a. If the project has a `/triad` command available — invoke `/triad` with the full Prompt
+      Contract as the task specification. This is the preferred implementation workflow.
+   b. Only if `/triad` does NOT exist — fall back to `superpowers:test-driven-development`
+      with the full Prompt Contract as the task specification.
 
 7. When TDD reaches the REFACTOR gate (human approval needed):
    - Move the task to "HITL Review" using `specflow:kanban`

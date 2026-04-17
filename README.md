@@ -4,6 +4,20 @@ A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin for **Spe
 
 specflow turns natural language into unambiguous requirements, wraps them in executable Prompt Contracts, organizes them into a GitHub-native hierarchy, and tracks everything through a Kanban workflow — all without leaving your terminal.
 
+## Status & Scope
+
+specflow is a personal experiment: an attempt to find a **lighter middle ground between [spec-kit](https://github.com/github/spec-kit) and [superpowers](https://github.com/obra/superpowers)**. spec-kit is a comprehensive SDD toolkit with a large surface area; superpowers is a broad, general-purpose skills framework. specflow picks a narrow slice — EARS → Prompt Contracts → GitHub Projects — and wires it together in the way that fits *my* workflow.
+
+That means:
+
+- **Opinionated by design.** The pipeline, artifact layout, Kanban columns, and config shape reflect my own projects and preferences, not a general standard.
+- **Not a product.** It ships as-is, without roadmap guarantees or support commitments.
+- **Use it freely, adapt it freely.** MIT-licensed. Fork it, carve out the pieces you want, rewire the skills — everything is plain markdown.
+- **Composable, not exclusive.** specflow is designed to work *alongside* [superpowers](https://github.com/obra/superpowers) rather than replace it. `/specflow:implement` can hand off to [`superpowers:test-driven-development`](https://github.com/obra/superpowers), and the brainstorming / planning / verification skills from superpowers complement specflow's artifact pipeline cleanly.
+- **Pairs with [triad](https://github.com/batidiane/triad).** triad is a companion plugin — a multi-agent TDD orchestrator (DESIGN → RED → GREEN → REFACTOR → QUALITY) that specflow prefers for the implementation phase when it's installed.
+
+If you want a more complete or vendor-backed SDD experience, use spec-kit. If you want a broader skills toolkit, use superpowers. If you want a small, hackable, GitHub-native pipeline tuned to one person's taste, this is it.
+
 ## Why
 
 AI-assisted development produces inconsistent results when requirements are informal. Vague specs lead to hallucinated features, missed edge cases, and untraceable work. specflow solves this by enforcing a formal pipeline:
@@ -32,7 +46,7 @@ Every step produces a persistent markdown artifact. The files are the source of 
 Every GitHub issue traces to a Prompt Contract, which traces to an EARS requirement, which traces to a spec document section. Nothing is invented by AI.
 
 ### EARS Requirements
-[Easy Approach to Requirements Syntax](https://ieeexplore.ieee.org/document/6146379) eliminates ambiguity by constraining natural language into six patterns:
+[Easy Approach to Requirements Syntax](https://alistairmavin.com/ears/) eliminates ambiguity by constraining natural language into six patterns:
 
 | Pattern | Template | Use When |
 |---------|----------|----------|
@@ -61,12 +75,16 @@ GitHub mutations are never automatic. The publisher previews every `gh` command 
 
 ## Installation
 
-```bash
-# In Claude Code
-/install-plugin batidiane/specflow
+From inside Claude Code:
+
+```
+/plugin marketplace add batidiane/specflow
+/plugin install specflow@specflow
 ```
 
-Then add the marketplace to your `~/.claude/settings.json` if prompted:
+The first command registers the marketplace; the second installs the plugin.
+
+To share specflow with your team via project settings, add it to `.claude/settings.json`:
 
 ```json
 {
@@ -77,6 +95,9 @@ Then add the marketplace to your `~/.claude/settings.json` if prompted:
         "repo": "batidiane/specflow"
       }
     }
+  },
+  "enabledPlugins": {
+    "specflow@specflow": true
   }
 }
 ```
@@ -240,17 +261,19 @@ Forbidden transitions are enforced: you can't skip from Icebox to In Progress, o
 
 specflow is designed to compose with existing tools:
 
-- **TDD workflows** — `/specflow:implement` delegates to `superpowers:test-driven-development` or your project's TDD command
-- **Brainstorming** — upstream idea exploration feeds into `/specflow:specify`
-- **Code review** — human gate at HITL Review integrates with your PR workflow
-- **Existing agents** — tester, implementer, architect agents receive Prompt Contracts as their exact spec
+- **[triad](https://github.com/batidiane/triad)** — companion plugin, a multi-agent TDD orchestrator (DESIGN → RED → GREEN → REFACTOR → QUALITY). `/specflow:implement` invokes `/triad` automatically if it's installed, passing the Prompt Contract as the task spec.
+- **[superpowers](https://github.com/obra/superpowers)** — specflow is fully compatible. If `/triad` isn't available, `/specflow:implement` falls back to `superpowers:test-driven-development`. The `superpowers:brainstorming`, `writing-plans`, and `verification-before-completion` skills all pair naturally with the specflow pipeline.
+- **Brainstorming** — upstream idea exploration (e.g. `superpowers:brainstorming`) feeds into `/specflow:specify`.
+- **Code review** — the human gate at HITL Review integrates with your existing PR workflow.
+- **Existing agents** — any tester, implementer, or architect agent you already use can consume Prompt Contracts as their exact spec.
 
-## Inspiration
+## Inspiration & Related Work
 
-- [EARS](https://ieeexplore.ieee.org/document/6146379) — Alistair Mavin's Easy Approach to Requirements Syntax
-- [Prompt Contracts](https://arxiv.org/abs/2311.18000) — Deterministic specification framework for LLM agents
-- [speckit](https://github.com/speckit/speckit) — Specification-driven development toolkit
-- [superpowers](https://github.com/obra/superpowers) — Claude Code skills library (specflow is compatible)
+- [EARS](https://alistairmavin.com/ears/) — Alistair Mavin's Easy Approach to Requirements Syntax ([2009 IEEE paper](https://ieeexplore.ieee.org/document/5328509/))
+- [Prompt Contracts](https://medium.com/@enkidu.risk/prompt-contracts-my-ai-went-from-guessing-to-shipping-professional-80d92edeace2) — enkidurisk's four-section contract (GOAL / CONSTRAINTS / FORMAT / FAILURE CONDITIONS) for deterministic AI agent instructions
+- [spec-kit](https://github.com/github/spec-kit) — GitHub's comprehensive specification-driven development toolkit; specflow aims for a lighter alternative
+- [superpowers](https://github.com/obra/superpowers) — Claude Code skills framework; specflow is fully compatible and can delegate to it
+- [triad](https://github.com/batidiane/triad) — companion multi-agent TDD orchestrator; `/specflow:implement` prefers it when available
 
 ## License
 

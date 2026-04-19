@@ -52,10 +52,12 @@ Build the creation order:
 
 ---
 
-## Step 3: Check for Existing Items (Idempotency)
+## Step 3: Check for Existing Items (Idempotency + SCOPE-003)
 
-Before creating anything, check what already exists:
+Before creating anything, run TWO independent checks. The second one enforces SCOPE-003
+(search before creating) — duplicate issues are a defect, not a minor annoyance.
 
+**Check A — exact-title + specflow label (fast path):**
 ```bash
 # Check existing milestones
 gh api repos/{owner}/{repo}/milestones --jq '.[].title'
@@ -64,10 +66,28 @@ gh api repos/{owner}/{repo}/milestones --jq '.[].title'
 gh issue list --repo {owner}/{repo} --label "specflow" --state all --limit 500 --json number,title
 ```
 
-For each planned item:
-- If a milestone with the same title exists → SKIP (note in preview)
-- If an issue with the same title exists → SKIP (note in preview)
-- Only create items that don't already exist
+**Check B — keyword search across ALL open issues (SCOPE-003):**
+For each planned Feature issue and each CONTRACT-### sub-issue, extract the 2–4 most
+distinctive keywords from the title and run:
+```bash
+gh issue list --repo {owner}/{repo} --search "<keywords>" --state open \
+  --json number,title,labels
+```
+
+Catches duplicates from ad-hoc issues that don't have the specflow label (e.g. a teammate
+filed "WHO-5 score calc bug" before the spec flow reached that feature). Match on:
+- Substring in title (case-insensitive)
+- Domain label overlap
+
+For each planned item, the decision matrix:
+| Check A match | Check B match | Action |
+|---------------|---------------|--------|
+| yes           | —             | SKIP (exact specflow duplicate) |
+| no            | yes (label-matched) | FLAG in preview: "possible duplicate — #N: {title}" and ask user whether to SKIP, LINK-AS-COMMENT, or CREATE-ANYWAY |
+| no            | yes (no label match) | FLAG in preview as advisory; default = CREATE |
+| no            | no            | CREATE |
+
+Only create items that pass both checks without an unresolved FLAG.
 
 ---
 
@@ -253,3 +273,6 @@ Next: /specflow:status all
 5. **NEVER modify existing issues** — only add sub-issues to them
 6. **All issues get the `specflow` label** — for filtering and idempotency checks
 7. **Effort labels** — add effort size (XS, S, M, L) as a label to task issues
+8. **SCOPE-003 enforcement** — run keyword search (Check B in Step 3) for every planned
+   issue before creating. If a plausible duplicate is found, default to SKIP and require
+   explicit user override before creating a potentially-duplicate issue.

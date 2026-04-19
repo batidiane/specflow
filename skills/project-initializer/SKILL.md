@@ -71,6 +71,11 @@ From the gathered context, attempt to fill every config section:
 - These are the NON-NEGOTIABLE rules injected into every Prompt Contract
 - Focus on rules that affect implementation: coverage thresholds, forbidden patterns, required libraries
 
+### Scope Discipline Constraints
+- **Always emit the standard block** (SCOPE-001..006). These do not come from CLAUDE.md —
+  they are specflow's built-in pipeline discipline rules and apply to every project.
+- Do not ask the user about them. Do not omit them. Write them verbatim (see Step 4).
+
 ### Out of Scope
 - If CLAUDE.md or specs define "out of scope" or "Phase 2" items → use those
 - If nothing found → leave empty, ask the user
@@ -146,6 +151,19 @@ Write to `.specflow/config.md`:
 - {constraint from CLAUDE.md or user input}
 - {constraint from CLAUDE.md or user input}
 
+## Scope Discipline Constraints
+SCOPE-001: Fix findings inline if < 30 min and files are in the PR diff.
+SCOPE-002: Target zero new issues per PR. Justify any exception in the PR description.
+SCOPE-003: Before creating any issue, search existing issues first
+           (`gh issue list --search "<keywords>" --state open`). Duplicate issues are a defect.
+SCOPE-004: Style preferences (switch vs map, naming nits in untouched files) are SKIP,
+           not DEFER. Do not track them as follow-ups.
+SCOPE-005: Spec gaps route through the specflow pipeline
+           (`/specflow:specify` → `/specflow:contract` → `/specflow:plan` → `/specflow:publish`),
+           not standalone GitHub issues.
+SCOPE-006: When vendor docs conflict with contract FORMAT, follow vendor docs.
+           Flag the deviation in the PR description.
+
 ## Out of Scope
 - {item}
 - {item}
@@ -176,7 +194,11 @@ If `.specflow/config.md` already exists:
 1. Read the existing config
 2. Read current project state (CLAUDE.md, repo structure, GitHub metadata)
 3. Compare: identify sections that are outdated or missing new information
-4. Present a diff-style summary:
+4. **Check for Scope Discipline block**: if `## Scope Discipline Constraints` section is
+   missing from the existing config, flag it as a REQUIRED update (not optional). The full
+   SCOPE-001..006 block from Step 4 must be added — these are specflow pipeline rules,
+   not project-specific preferences.
+5. Present a diff-style summary:
    ```
    ## specflow config update
 
@@ -188,6 +210,9 @@ If `.specflow/config.md` already exists:
    - Spec Documents: found new file docs/CocoMind Migration Strategy.md — add?
    - Project Constraints: CLAUDE.md added "All HTTP requests must have timeouts" — add?
    - Epic Definitions: no changes
+
+   ### Required updates (specflow pipeline rules)
+   - Scope Discipline Constraints: SECTION MISSING — will add SCOPE-001..006 block
 
    ### Missing (still need input)
    - github-project-id: still not set — discover now? [yes/no]
@@ -213,10 +238,24 @@ Sections populated:
 ✓ Domain Labels: {P} labels
 ✓ Kanban Columns: standard (5 columns)
 ✓ Project Constraints: {Q} constraints
+✓ Scope Discipline Constraints: SCOPE-001..006 (specflow pipeline rules)
 ✓ Out of Scope: {R} items
 
 [If artifact directories were created]:
 ✓ Created docs/specflow/ artifact directories
+
+Recommended (manual — CLAUDE.md is yours to own):
+Mirror the Scope Discipline rules into CLAUDE.md §Development Rules so every
+agent reads them on every task. Suggested block:
+
+  ### Scope Discipline
+  - Fix inline, don't defer: < 30 min + files in PR diff → fix now, no follow-up issue.
+  - Zero new issues per PR is the target. Justify any exception.
+  - Search before creating: `gh issue list --search "<keywords>" --state open` first.
+  - Style preferences are SKIP, not DEFER. Do not track them.
+  - Don't touch what you didn't break — findings outside the PR diff are out of scope.
+  - Spec gaps use the specflow pipeline, not standalone GitHub issues.
+  - Vendor best practices override contract FORMAT when they conflict; flag in PR.
 
 Next: /specflow:specify [feature description]
 ```

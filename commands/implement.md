@@ -42,15 +42,34 @@ Before running:
    The FORMAT defines the exact file outputs.
    The GOAL is the acceptance criterion.
 
+   **Scope Discipline (REFACTOR phase rules — pass verbatim to the orchestrator):**
+   The contract's CONSTRAINTS block already carries SCOPE-001..006 from `.specflow/config.md`.
+   The TDD orchestrator MUST apply these rules at the REFACTOR gate:
+
+   - A finding fixable in < 30 min touching files already in the PR diff → **fix inline**.
+     Present to HITL as "applied," not as a follow-up.
+   - A finding in a file outside the PR diff → **SKIP**. Note as "out of scope (untouched
+     file)" in the audit report. Do not recommend a follow-up issue.
+   - A style preference with no correctness impact → **SKIP permanently**. Do not surface
+     at HITL gate.
+   - A genuine spec gap → **pause and surface to owner** for `/specflow:specify` routing.
+     Do not file a standalone issue.
+   - REFACTOR audit report MUST end with `New issues recommended: [count]` — target 0.
+     Each count > 0 item must include a justification for why it cannot be fixed inline.
+
    **Skill resolution (check in this order):**
    a. If the project has a `/triad` command available — invoke `/triad` with the full Prompt
-      Contract as the task specification. This is the preferred implementation workflow.
+      Contract (including SCOPE-001..006) as the task specification. This is the preferred
+      implementation workflow.
    b. Only if `/triad` does NOT exist — fall back to `superpowers:test-driven-development`
       with the full Prompt Contract as the task specification.
 
 7. When TDD reaches the REFACTOR gate (human approval needed):
    - Move the task to "HITL Review" using `specflow:kanban`
-   - Present the REFACTOR plan to the user
+   - Present the REFACTOR plan to the user — including the `New issues recommended: [count]`
+     tally. If count > 0, require a one-line justification per item before approval.
+   - Before presenting any recommended new issue, confirm the orchestrator ran
+     `gh issue list --search "<keywords>" --state open` (SCOPE-003). If not, run it now.
    - STOP and wait for approval
 
 8. After REFACTOR approval and completion:

@@ -73,6 +73,19 @@ Every pipeline step writes a markdown file before the next step reads it. Restar
 ### Explicit Gates
 GitHub mutations are never automatic. The publisher previews every `gh` command and waits for human confirmation. The Kanban workflow has a mandatory human gate (HITL Review) between AI implementation and merge.
 
+### Scope Discipline
+Every `.specflow/config.md` carries a standard `## Scope Discipline Constraints` block (SCOPE-001..006) that cascades into every Prompt Contract's CONSTRAINTS section and travels with every TDD handoff. These rules are enforced at the REFACTOR gate:
+
+- **Fix inline, don't defer** — if a finding is < 30 min and touches files in the PR diff, fix it now; no follow-up issue.
+- **Zero new issues per PR** is the target; every new issue is scope creep until justified.
+- **Search before creating** — `gh issue list --search "<keywords>" --state open` first; the publisher runs this automatically for every planned issue.
+- **Style preferences are SKIP**, not DEFER — do not track them.
+- **Don't touch what you didn't break** — findings in files outside the PR diff are out of scope.
+- **Spec gaps use the specflow pipeline**, not standalone GitHub issues.
+- **Vendor docs override contract FORMAT** when they conflict; flag in PR.
+
+`/specflow:init` writes these into your config automatically. If you run it against an existing config that predates them, update mode will flag the missing block as a required update. The suggested CLAUDE.md §Development Rules mirror is printed after init — apply it manually.
+
 ## Installation
 
 From inside Claude Code:

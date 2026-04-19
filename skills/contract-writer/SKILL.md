@@ -24,10 +24,17 @@ Before writing any contract:
 1. Read the EARS requirements document (from $ARGUMENTS or user's message)
 2. Read `.specflow/config.md` if it exists — extract:
    - **Project Constraints** → injected into every contract's CONSTRAINTS section
+   - **Scope Discipline Constraints** (SCOPE-001..006) → injected into every contract's
+     CONSTRAINTS section verbatim, as a dedicated subsection. These are pipeline rules
+     and apply to every contract with no exceptions.
    - **Domain Labels** → used to tag contracts
    - **Out of Scope** → reject any requirement targeting these
 3. Read `references/contract-template.md` for the exact output format
 4. Read `references/failure-condition-guide.md` for failure condition writing rules
+
+If `.specflow/config.md` is missing the `## Scope Discipline Constraints` section,
+stop and tell the user to run `/specflow:init` in update mode to add it. Do not proceed
+without it — a contract without scope rules is incomplete.
 
 ---
 
@@ -74,6 +81,8 @@ For each group, write the four mandatory sections:
 - Start with project constraints from `.specflow/config.md` (if applicable to this task)
 - Add task-specific technology constraints (library, pattern, architecture layer)
 - Add forbidden approaches
+- Inject Scope Discipline verbatim as its own subsection (SCOPE-001..006 from config).
+  These apply to every contract without exception and are enforced at the REFACTOR gate.
 - End with: `Covers: REQ-001, REQ-002` (list all covered requirement IDs)
 
 ### FORMAT
@@ -135,7 +144,17 @@ Write to `docs/specflow/contracts/<feature-slug>.md` using the same slug as the 
 ### CONSTRAINTS
 - [Project constraint from config]
 - [Task-specific constraint]
-- Covers: REQ-001, REQ-002
+
+**Scope Discipline** (from .specflow/config.md — applies to every contract):
+- SCOPE-001: Fix findings inline if < 30 min and files are in the PR diff.
+- SCOPE-002: Target zero new issues per PR. Justify any exception in the PR description.
+- SCOPE-003: Before creating any issue, search existing issues
+            (`gh issue list --search "<keywords>" --state open`).
+- SCOPE-004: Style preferences are SKIP, not DEFER. Do not track them.
+- SCOPE-005: Spec gaps route through the specflow pipeline, not standalone issues.
+- SCOPE-006: Vendor docs override contract FORMAT when they conflict; flag in PR.
+
+Covers: REQ-001, REQ-002
 
 ### FORMAT
 - File: [exact path]
@@ -215,3 +234,6 @@ Next: /specflow:plan docs/specflow/contracts/<slug>.md
 - [ ] Dependencies reference valid CONTRACT-### IDs
 - [ ] No circular dependencies exist
 - [ ] Project constraints from config are injected where applicable
+- [ ] Scope Discipline block (SCOPE-001..006) is present in every contract's CONSTRAINTS
+- [ ] No spec-gap found during contracting was filed as a GitHub issue (SCOPE-005 — if a
+      gap is discovered, pause and route it back through `/specflow:specify`)

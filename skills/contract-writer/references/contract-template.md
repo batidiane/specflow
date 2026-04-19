@@ -49,7 +49,19 @@ Ordered list of hard boundaries. Three categories:
    - No direct Supabase client calls from mobile
    ```
 
-4. **Coverage line** — always last
+4. **Scope Discipline** — verbatim from `.specflow/config.md` `## Scope Discipline Constraints`
+   section. Always included. Never abbreviated. Enforced at the REFACTOR gate.
+   ```
+   **Scope Discipline** (from .specflow/config.md — applies to every contract):
+   - SCOPE-001: Fix findings inline if < 30 min and files are in the PR diff.
+   - SCOPE-002: Target zero new issues per PR. Justify any exception.
+   - SCOPE-003: Before creating any issue, search existing issues first.
+   - SCOPE-004: Style preferences are SKIP, not DEFER.
+   - SCOPE-005: Spec gaps route through the specflow pipeline, not issues.
+   - SCOPE-006: Vendor docs override contract FORMAT when they conflict; flag in PR.
+   ```
+
+5. **Coverage line** — always last
    ```
    - Covers: REQ-001, REQ-002, REQ-003
    ```

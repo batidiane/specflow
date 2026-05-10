@@ -117,6 +117,33 @@ To share specflow with your team via project settings, add it to `.claude/settin
 }
 ```
 
+## GitHub Copilot support
+
+specflow ships VS Code Copilot Customization files in `.github/` alongside the Claude Code commands and skills. VS Code users with Copilot Chat get the same workflow: slash-prompts for every pipeline step, instruction files that auto-attach over the matching artifact trees, and a chat mode for the wiki curator.
+
+**Quick install.** Clone or copy the `.github/` directory into the target project's repo root — or symlink it if you want updates to track upstream. Copilot auto-discovers files under `.github/copilot-instructions.md`, `.github/prompts/`, `.github/instructions/`, and `.github/chatmodes/` with no manifest required.
+
+**Mapping (Claude Code → Copilot).**
+
+| Claude Code | Copilot equivalent |
+|---|---|
+| `/specflow:init` | `/specflow-init` prompt |
+| `/specflow:specify` | `/specflow-specify` prompt |
+| `/specflow:contract` | `/specflow-contract` prompt |
+| `/specflow:plan` | `/specflow-plan` prompt |
+| `/specflow:publish` | `/specflow-publish` prompt |
+| `/specflow:implement` | `/specflow-implement` prompt |
+| `/specflow:status` | `/specflow-status` prompt |
+| `/specflow:wiki-init` | `/specflow-wiki-init` prompt |
+| `/specflow:wiki` | `/specflow-wiki` prompt |
+| `skills/*/SKILL.md` | `.github/instructions/specflow-*.instructions.md` (auto-attached over matching paths) |
+| `agents/wiki-curator.md` | `.github/chatmodes/wiki-curator.chatmode.md` |
+| `CLAUDE.md` | `.github/copilot-instructions.md` (repo-wide) |
+
+**Usage.** In Copilot Chat, type `/specflow-specify` (etc.) to invoke a prompt; pass arguments inline. The `wiki-curator` chat mode is selectable from the chat mode picker — switch to it for any work under `docs/wiki/`.
+
+**Note.** Copilot prompts inline the procedure (there is no skill / agent runtime), so very long workflows may produce slightly different output than Claude Code. Inspect `.github/instructions/specflow-*.instructions.md` to understand each procedure end-to-end.
+
 ## Quick Start
 
 ### 1. Initialize your project

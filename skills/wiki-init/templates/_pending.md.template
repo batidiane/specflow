@@ -1,0 +1,49 @@
+# Compilation Queue — `_pending.md`
+
+This file coordinates per-cycle distillation (Mode A) with end-of-sprint compilation (Mode B). It is the bridge between `sources/` (where Triad archives cycle reports) and `wiki/` (where `@wiki-curator` writes curated pages).
+
+## Format
+
+One line per source artefact. Each line:
+
+```
+- YYYY-MM-DD — <relative path under docs/wiki/sources/> — [STATUS]
+```
+
+Status values:
+
+- `[PENDING]` — archived but not yet distilled into the curated wiki.
+- `[COMPILED — YYYY-MM-DD by mode-A]` — distilled by per-cycle Mode A on the given date.
+- `[COMPILED — YYYY-MM-DD by mode-B]` — distilled by the end-of-sprint Mode B compilation pass.
+- `[SKIPPED — YYYY-MM-DD reason]` — explicitly excluded by the owner during a HITL gate.
+
+## Who writes here
+
+- **TDD orchestrator (e.g. `triad.md` Phase 8.5):** appends a `[PENDING]` line every time it archives a cycle report under `sources/cycles/` or an owner decision under `sources/decisions/`.
+- **`@wiki-curator` (Mode A):** flips a `[PENDING]` line to `[COMPILED — ... by mode-A]` after writing the corresponding curated diffs. This is the **only** mutation the curator is permitted to make in `sources/` — and it touches only this file's status markers, nothing else.
+- **`@wiki-curator` (Mode B):** processes any remaining `[PENDING]` entries before walking the compilation checklist; flips them to `[COMPILED — ... by mode-B]`.
+
+## Who reads here
+
+- **Mode A** reads its own line (passed by path) to confirm status before writing.
+- **Mode B** reads the entire file as the first step of the compilation pass — every `[PENDING]` line is processed before the lint checklist begins.
+- The `health` block of `_hot.md` surfaces the count of `[PENDING]` lines as a freshness signal.
+
+## Why this file matters
+
+Without this file, the daily/per-cycle ingest and the weekly/end-of-sprint compilation cannot coordinate. If Mode A is skipped (token budget, time pressure, agent crash), there is no record that a cycle was archived but never curated. The queue catches every miss.
+
+If `_pending.md` accumulates too many `[PENDING]` entries (rule of thumb: more than 10), the curator surfaces this in `_hot.md` as a backlog warning.
+
+## Examples
+
+```
+- 2026-05-08 — cycles/142-fix-auth-token.md — [PENDING]
+- 2026-05-09 — cycles/143-add-rate-limit.md — [COMPILED — 2026-05-09 by mode-A]
+- 2026-05-09 — decisions/owner-2026-05-09-r2-pricing.md — [PENDING]
+- 2026-05-07 — cycles/141-payments-refactor.md — [SKIPPED — 2026-05-08 superseded by cycle 144]
+```
+
+## Queue (live)
+
+<!-- Append new entries below this line. The curator only flips status markers; it does not reorder, dedupe, or delete entries. -->

@@ -1,0 +1,22 @@
+---
+title: Glossary
+last_updated: __TODAY__
+---
+
+# Glossary
+
+One H2 per term. One-sentence definition. Optional `→ See:` cross-reference. The glossary is scanned, not read — keep entries terse.
+
+A definition cannot reference another term that is itself undefined or defined only via this term. Walk the cross-references; if you arrive back at the starting term without a concrete definition, the chain is broken — fix the loop.
+
+A term used 3+ times across CLAUDE.md, the product spec, the design docs, or cycle reports without an entry here is a candidate for inclusion. Used 5+ times across the wiki without an entry → also a candidate for a primer page.
+
+<!-- Add entries below in alphabetical order. Example:
+
+## Confidence dial
+
+The trust level of a curated wiki page (`high` / `medium` / `low`). Promotions are owner-only; demotions are curator-allowed but always proposed in a diff.
+
+→ See: [_template ADR](decisions/_template.md), [Curator schema](CLAUDE.md)
+
+-->

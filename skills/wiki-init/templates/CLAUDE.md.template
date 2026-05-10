@@ -1,0 +1,147 @@
+---
+title: Wiki Schema (Karpathy second-brain layout)
+schema_version: 1
+last_updated: __TODAY__
+---
+
+# Engineering Wiki — Schema & Operating Rules
+
+This file is auto-loaded by Claude Code whenever an agent works inside `docs/wiki/`. It is the schema layer of a Karpathy-style second brain. Read order, hard rules, and folder map all live here.
+
+The wiki has two halves:
+
+- `sources/` — **append-only**, immutable. Populated by the project's TDD orchestrator (e.g. `triad.md` Phase 8.5 archives cycle reports here) and by owner-decision capture.
+- `wiki/` — curated by `@wiki-curator` under two-pass HITL discipline. Per-cycle distillation (Mode A) and end-of-sprint compilation (Mode B).
+
+Do not confuse them.
+
+## Folder map
+
+```
+docs/wiki/
+├── sources/                     # Append-only — Triad / owner populated
+│   ├── cycles/                  # One cycle report per Triad cycle
+│   ├── decisions/               # Owner-decision artefacts captured at HITL gates
+│   └── _pending.md              # Compilation queue (cycles awaiting Mode A / Mode B)
+└── wiki/                        # Curated — only @wiki-curator writes here
+    ├── CLAUDE.md                # ← this file (schema)
+    ├── _hot.md                  # < 500 token briefing — read first
+    ├── _log.md                  # Append-only audit trail of every curator run
+    ├── index.md                 # Catalog (read second after _hot)
+    ├── glossary.md              # One-line definitions
+    ├── lessons.md               # Cross-cycle anti-patterns and rules
+    ├── decisions/               # ADRs (300–500 words, five sections)
+    │   └── _template.md
+    ├── domains/                 # Domain primers (six sections)
+    │   └── _template.md
+    ├── patterns/                # Code patterns ("Name 3" gate)
+    │   └── _template.md
+    ├── interfaces/              # APIs we expose (HTTP, TS, GraphQL, CLI, events…)
+    │   └── _template.md
+    ├── flows/                   # End-to-end user journeys (happy path + branches)
+    │   └── _template.md
+    ├── runbooks/                # Operational procedures (rotate keys, restore, drain queue)
+    │   └── _template.md
+    ├── dependencies/            # External services we consume (SaaS, infra, libs)
+    │   └── _template.md
+    ├── policies/                # Non-functional rules (retention, GDPR, SLOs, access)
+    │   └── _template.md
+    └── risks/                   # Threat-model entries / known-risk register
+        └── _template.md
+```
+
+## Read order (mandatory)
+
+When any agent consults the wiki:
+
+1. Read `_hot.md` first (~400 tokens; current state, open OWNER DECISIONS, recent demotions, watchlist patterns, pending queue depth).
+2. Read `index.md` second (catalog of every curated page).
+3. Read specific files only after the first two have framed the search.
+
+This order is enforced at the schema layer because `_hot.md` is the only file refreshed every Mode B run; reading `index.md` first risks acting on stale signals.
+
+## Hard rules
+
+1. **Never edit `sources/`.** It is the source of truth. If `wiki/` drifts, the recovery path is to rebuild from `sources/`. The only exception is `sources/_pending.md`, whose `[PENDING] → [COMPILED]` markers are flipped by the curator (and only those markers).
+2. **Never invent facts.** Every claim in `wiki/` must trace to a file under `sources/` or to the codebase. If you cannot point to a source, do not write it.
+3. **Never silently change `confidence:` frontmatter.** Promotions (`medium → high`) are owner-only. Demotions are curator-allowed but always appear in the diff proposal — never silent.
+4. **Never write outside `wiki/`** as the curator. Sources are append-only by other tools. Production code is out of scope.
+5. **Format consistency outranks novelty.** Imitate the seed exemplars (ADRs, primers, patterns). A "better" idea about format goes in the diff as an OWNER DECISION — never a silent change.
+
+## Curator commands
+
+- `/specflow:wiki-init` — bootstrap or repair this layout (idempotent).
+- `/specflow:wiki` — Mode B compilation pass (end-of-sprint).
+- Mode A — per-cycle distillation, invoked from the TDD orchestrator (e.g. `triad.md` Phase 8.5).
+
+All three are read-and-propose first, write-only-on-approval. Same shape as the project's REFACTOR gate.
+
+## Frontmatter convention
+
+Every curated file under `wiki/` carries:
+
+```yaml
+---
+title: <human title>
+tags: [<area>, <subdomain>...]
+last_updated: <YYYY-MM-DD>
+source_issues: [<gh-issue-numbers>]
+confidence: <high | medium | low>
+---
+```
+
+No omissions, no extra fields. The control files (`_hot.md`, `_log.md`, `index.md`, `_pending.md`) follow their own minimal frontmatter — see their respective seed contents.
+
+## Confidence dial
+
+- `high` — owner-confirmed, stable, safe to cite externally.
+- `medium` — derived from documented sources but not yet battle-tested.
+- `low` — inferred from a single cycle or external article; treat as hypothesis until validated.
+
+Promotion paths require owner approval. Demotion happens automatically when a more recent cycle contradicts a file's claims.
+
+## Categories that feed product documentation
+
+The wiki is structured so that each curated category maps to a downstream documentation surface. This is the project-specific shape of Karpathy's second brain — the wiki is not just engineering memory, it is the upstream feed for help docs, ops docs, compliance docs, and architecture diagrams.
+
+| Category | What it captures | Feeds (downstream) |
+|---|---|---|
+| `decisions/` | ADRs (300–500 words, five sections) | Engineering rationale; architecture-decision register |
+| `domains/` | Internal mental models (six sections) | Engineering onboarding |
+| `patterns/` | Reusable mechanics ("Name 3" gate) | Internal best-practice catalog |
+| `interfaces/` | What we **expose** — HTTP, TS, GraphQL, CLI, events | Partner docs, SDK reference, public API docs |
+| `flows/` | End-to-end user journeys (happy path + branches) | Help center, onboarding, QA scenarios, support |
+| `runbooks/` | Operational procedures with verification + rollback | On-call playbook, incident response, admin guides |
+| `dependencies/` | External services we **consume**, with criticality + fallback | Architecture diagrams, deps page, blast-radius |
+| `policies/` | Non-functional cross-cutting (retention, GDPR, SLOs) | Compliance, trust page, security overview |
+| `risks/` | Threat-model entries with severity / likelihood / status | Security overview, audit prep, blast-radius analysis |
+| `glossary.md` / `lessons.md` | Terms & cross-cycle anti-patterns | Engineering reference |
+
+The curator surfaces candidates for each category during Mode A (per-cycle) and Mode B (end-of-sprint). Format consistency outranks novelty: every page imitates its template.
+
+## Interfaces — bridge to product documentation
+
+The `interfaces/` category surfaces every public API or contract that consumers (other services, mobile/web clients, partners, external developers) depend on. Each page distils:
+
+- The **contract shape** — endpoint / type / event / CLI signature.
+- The **stability** — stable / experimental / deprecated, plus versioning policy.
+- The **audience** — internal-only, external-facing, or both.
+- The **canonical source** — link to the file that defines it (OpenAPI YAML, TS types, proto, etc.). The page does not replace that file; it summarises it for documentation generation.
+
+This category exists because product documentation is downstream of engineering reality. By keeping interface pages in the wiki, the team always has a single source for "what we expose", confidence-graded and dated, ready to feed product/partner docs without re-discovery.
+
+The curator surfaces interface candidates when:
+
+- A cycle modifies a public/exported function, type, HTTP endpoint, GraphQL field, CLI command, or event payload (Mode A).
+- A Mode B scan finds an exported public surface that has no `interfaces/` page yet.
+- An interface was renamed, deprecated, or had its stability changed.
+
+Same `confidence` dial as every other curated page; demotion happens automatically when the canonical source diverges from the page.
+
+## "Name 3" rule (patterns only)
+
+A pattern earns a page in `patterns/` only when **3 known consumers** exist in the codebase, each named by file path. Two consumers go on a watchlist; one is just a coincidence. The rule is canonical (`lessons.md` → "Name 3, build once") and the curator enforces it on every Mode B run.
+
+## Schema version
+
+This file's frontmatter `schema_version` pins the layout. If specflow ships a newer version, the next `/specflow:wiki-init` run proposes a migration diff. Do not edit `schema_version` by hand.

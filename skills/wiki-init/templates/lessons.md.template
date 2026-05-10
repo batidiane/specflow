@@ -1,0 +1,28 @@
+---
+title: Lessons
+last_updated: __TODAY__
+---
+
+# Lessons
+
+Cross-cycle anti-patterns and rules. Each lesson is one H2 with a memorable name, a one-paragraph rule, and a `Why:` line citing the cycle(s) that produced it.
+
+The curator surfaces a lesson candidate when:
+
+- An anti-pattern is caught by `@code-reviewer` or `@security-auditor` in 2+ cycles.
+- A `REFACTOR` gate decision generalises beyond the cycle that produced it.
+- The owner explicitly says "remember this for next time" during a HITL gate.
+
+The curator de-duplicates lessons (same idea under two H2s) during Mode B.
+
+<!-- Seed lesson — kept across all projects because the rule is referenced by `@wiki-curator` itself. Do not delete unless the rule changes upstream in the specflow plugin. -->
+
+## Name 3, build once
+
+A reusable abstraction earns its place only when **three known consumers** exist in the codebase. Two consumers is a watchlist entry. One consumer is just a function — keep it inline.
+
+**Why:** Premature abstraction costs more than three local copies. The third consumer is the signal that the contract has stabilised.
+
+**How to apply:** When proposing a `wiki/patterns/` page, list all three consumer file paths. If only two are present, file a watchlist comment in the curator's diff and revisit when a third lands.
+
+<!-- Add new lessons below this line. -->

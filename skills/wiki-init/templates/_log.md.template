@@ -1,0 +1,48 @@
+---
+title: Wiki Curator Log
+last_updated: __TODAY__
+---
+
+# Wiki Curator — Audit Trail
+
+Every automated run of `@wiki-curator` (Mode A and Mode B) and every `/specflow:wiki-init` invocation appends an entry here. The log is append-only and grep-parseable; it is the only persistent record of what the curator has done.
+
+## Format
+
+```markdown
+## [YYYY-MM-DD HH:MM] <run-type> — <subject> — wrote <K> / proposed <P>
+- Wrote: <path> — <one-line description>
+- Proposed (deferred by owner): <path> — <reason>
+- Confidence changes: <file> <from>→<to> (<promotion|demotion>)
+- Watchlist: <pattern slug> — <consumer count>
+```
+
+Run types:
+
+- `wiki-init` — bootstrap, repair, or schema-bump from `/specflow:wiki-init`.
+- `mode-A` — per-cycle distillation from the TDD orchestrator (e.g. `triad.md` Phase 8.5).
+- `mode-B` — end-of-sprint compilation pass from `/specflow:wiki`.
+
+Subject is whichever of these is most informative:
+
+- For `wiki-init` — the schema version (`schema v1`).
+- For `mode-A` — the cycle issue ID (`issue #142`).
+- For `mode-B` — the sprint identifier or date range (`sprint-22` or `2026-05-03..2026-05-10`).
+
+## Why this file matters
+
+Three reasons:
+
+1. **Drift detection.** If `git log -- docs/wiki/wiki/_log.md | tail -1` shows the last entry was 60+ days ago, the wiki is almost certainly stale even if the rest of the tree looks fresh. `_hot.md` reads this signal on every Mode B refresh.
+2. **Debuggability.** When a curated page reads strangely, grep this file for the run that wrote it. Cross-reference with the source artefact named in the entry.
+3. **Confidence trend.** Aggregate `confidence changes` across runs to detect files that bounce between levels — a signal that the underlying decision is unstable, not just the documentation.
+
+## Hard rules
+
+- **Append-only.** Never edit historical entries. Corrections go in a new entry that references the original by timestamp.
+- **Always log on Pass 2 success.** No silent applies.
+- **Log even on no-op runs** when the run was a deliberate compilation pass (Mode B). For Mode A or `wiki-init`, a true no-op (nothing changed) is logged as a single line: `- No changes; checklist clean.`
+
+## Entries (newest at bottom)
+
+<!-- Append new entries below this line. -->

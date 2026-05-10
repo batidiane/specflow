@@ -1,0 +1,86 @@
+---
+title: Wiki Hot Cache
+last_updated: __TODAY__
+refresh_run: wiki-init (initial seed)
+---
+
+# Wiki — Hot
+
+Read this file first when consulting the wiki. Target size: < 500 tokens. Refreshed by `@wiki-curator` at the end of every Mode B run, and on bootstrap by `/specflow:wiki-init`.
+
+## Active decisions (last 30 days)
+
+<!-- Mode B fills this with ADRs whose `last_updated` falls in the last 30 days. Title — confidence — status. -->
+
+_(empty on bootstrap)_
+
+## Open OWNER DECISIONS
+
+<!-- Pattern-promotion borderlines, confidence-promotion candidates, primer-refresh proposals deferred by the owner. Mode B refreshes; an owner who applies a deferred item should also strike it here. -->
+
+_(empty on bootstrap)_
+
+## Recent confidence changes
+
+<!-- Last 30 days of promotions and demotions. Format: file — from→to — date — rationale. -->
+
+_(empty on bootstrap)_
+
+## Recent interface changes (last 30 days)
+
+<!-- Mode B lists newly added, modified, deprecated, or audience-changed interface pages. Format: name — kind — stability — change. Empty when no interfaces/ activity. -->
+
+_(empty on bootstrap)_
+
+## New / changed flows (last 30 days)
+
+<!-- Mode B lists user-journey additions or modifications. Format: name — actor — change. -->
+
+_(empty on bootstrap)_
+
+## Runbook health
+
+<!-- Runbooks with last_drilled: never, runbooks not drilled in 90+ days. Format: name — last_drilled — severity. -->
+
+_(empty on bootstrap)_
+
+## Dependency status
+
+<!-- Critical dependencies whose ADRs or fallback paths have changed; deps where vendor SLAs have moved. -->
+
+_(empty on bootstrap)_
+
+## Active policies (recent changes)
+
+<!-- Newly added or recently modified policies. Format: name — scope — change. -->
+
+_(empty on bootstrap)_
+
+## Open risks
+
+<!-- Mode B lists risks with status: open, sorted by severity then likelihood. Format: name — kind — severity — likelihood — current mitigation summary. -->
+
+_(empty on bootstrap)_
+
+## Watchlist patterns (2 of 3 consumers)
+
+<!-- Patterns awaiting their third consumer before promotion. Format: slug — known consumers (paths). -->
+
+_(empty on bootstrap)_
+
+## Health
+
+- Pending queue depth: see `docs/wiki/sources/_pending.md` (target: < 10)
+- Days since last Mode B run: <!-- Mode B fills -->
+- Days since last Mode A run: <!-- Mode B fills from _log.md -->
+- Stale primers (`last_updated` > 90d): <!-- Mode B fills -->
+
+## How to use this file
+
+If you are an agent (architect, coder, reviewer) about to consult the wiki:
+
+1. Read this file (you are here).
+2. Read `index.md` for the full catalog.
+3. Read specific files only after those two.
+
+If you are a human contributor: this file tells you where the wiki is bleeding. Open OWNER DECISIONS and recent demotions are the highest-signal items.

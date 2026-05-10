@@ -1,26 +1,26 @@
 # specflow
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin for **Specification-Driven Development (SDD)**.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin for **Specification-Driven Development (SDD)** that also ships a Karpathy-style LLM-curated engineering wiki.
 
-specflow turns natural language into unambiguous requirements, wraps them in executable Prompt Contracts, organizes them into a GitHub-native hierarchy, and tracks everything through a Kanban workflow — all without leaving your terminal.
+specflow turns natural language into unambiguous requirements, wraps them in executable Prompt Contracts, organizes them into a GitHub-native hierarchy, tracks everything through a Kanban workflow, and distils the resulting cycles into a curated second brain — all without leaving your terminal.
 
 ## Status & Scope
 
-specflow is a personal experiment: an attempt to find a **lighter middle ground between [spec-kit](https://github.com/github/spec-kit) and [superpowers](https://github.com/obra/superpowers)**. spec-kit is a comprehensive SDD toolkit with a large surface area; superpowers is a broad, general-purpose skills framework. specflow picks a narrow slice — EARS → Prompt Contracts → GitHub Projects — and wires it together in the way that fits *my* workflow.
+specflow is a personal experiment: an attempt to find a **lighter middle ground between [spec-kit](https://github.com/github/spec-kit) and [superpowers](https://github.com/obra/superpowers)**. spec-kit is a comprehensive SDD toolkit with a large surface area; superpowers is a broad, general-purpose skills framework. specflow picks a narrow slice — EARS → Prompt Contracts → GitHub Projects, plus a curated wiki on top — and wires it together in the way that fits *my* workflow.
 
 That means:
 
-- **Opinionated by design.** The pipeline, artifact layout, Kanban columns, and config shape reflect my own projects and preferences, not a general standard.
+- **Opinionated by design.** The pipeline, artifact layout, Kanban columns, wiki schema, and config shape reflect my own projects and preferences, not a general standard.
 - **Not a product.** It ships as-is, without roadmap guarantees or support commitments.
 - **Use it freely, adapt it freely.** MIT-licensed. Fork it, carve out the pieces you want, rewire the skills — everything is plain markdown.
 - **Composable, not exclusive.** specflow is designed to work *alongside* [superpowers](https://github.com/obra/superpowers) rather than replace it. `/specflow:implement` can hand off to [`superpowers:test-driven-development`](https://github.com/obra/superpowers), and the brainstorming / planning / verification skills from superpowers complement specflow's artifact pipeline cleanly.
-- **Pairs with [triad](https://github.com/batidiane/triad).** triad is a companion plugin — a multi-agent TDD orchestrator (DESIGN → RED → GREEN → REFACTOR → QUALITY) that specflow prefers for the implementation phase when it's installed.
+- **Pairs with [triad](https://github.com/batidiane/triad).** triad is a companion plugin — a multi-agent TDD orchestrator (DESIGN → RED → GREEN → REFACTOR → QUALITY) that specflow prefers for the implementation phase when it's installed. The wiki's per-cycle distillation hook (Mode A) is designed to fit a Phase 8.5 in that orchestrator.
 
 If you want a more complete or vendor-backed SDD experience, use spec-kit. If you want a broader skills toolkit, use superpowers. If you want a small, hackable, GitHub-native pipeline tuned to one person's taste, this is it.
 
 ## Why
 
-AI-assisted development produces inconsistent results when requirements are informal. Vague specs lead to hallucinated features, missed edge cases, and untraceable work. specflow solves this by enforcing a formal pipeline:
+AI-assisted development produces inconsistent results when requirements are informal and project memory is scattered across chat history. Vague specs lead to hallucinated features and missed edge cases; lost context across cycles leads to re-discovery, re-litigation of decisions, and gradual architectural drift. specflow tackles both halves of the problem:
 
 ```
 Spec document / feature idea
@@ -36,6 +36,8 @@ Real GitHub milestones, issues, sub-issues
 TDD execution with human gates
     ↓  track
 Kanban status from live GitHub data
+    ↓  distil
+Curated engineering wiki (LLM-maintained second brain)
 ```
 
 Every step produces a persistent markdown artifact. The files are the source of truth — not conversation memory.
@@ -64,14 +66,14 @@ Each atomic task gets a four-section contract that drives deterministic AI agent
 
 - **GOAL** — One sentence. Binary pass/fail. Testable in under 1 minute.
 - **CONSTRAINTS** — Hard boundaries: architecture rules, required libraries, forbidden patterns.
-- **FORMAT** — Exact file paths, exported symbols, test file locations.
+- **FORMAT** — Exact file paths, exported symbols, test file locations. **When an artifact requires a separate registration or binding site to become reachable** (route mounted on a mux, screen registered on a router, scheduled job added to a scheduler, event subscription, migration list entry, CLI command registration), FORMAT must name **both** the artifact file and its binding site. An artifact without its binding ships unreachable.
 - **FAILURE CONDITIONS** — What makes the output unacceptable. Each maps to a REQ-### and becomes a TDD test spec.
 
 ### Artifacts Over Memory
 Every pipeline step writes a markdown file before the next step reads it. Restartable, manually editable, version-controlled. No reliance on conversation context.
 
 ### Explicit Gates
-GitHub mutations are never automatic. The publisher previews every `gh` command and waits for human confirmation. The Kanban workflow has a mandatory human gate (HITL Review) between AI implementation and merge.
+GitHub mutations are never automatic. The publisher previews every `gh` command and waits for human confirmation. The Kanban workflow has a mandatory human gate (HITL Review) between AI implementation and merge. The wiki curator follows the same shape — every wiki write is preceded by a diff proposal and an approval round.
 
 ### Scope Discipline
 Every `.specflow/config.md` carries a standard `## Scope Discipline Constraints` block (SCOPE-001..006) that cascades into every Prompt Contract's CONSTRAINTS section and travels with every TDD handoff. These rules are enforced at the REFACTOR gate:
@@ -184,6 +186,23 @@ Reads the Prompt Contract from the issue, moves the task to In Progress, delegat
 
 Queries live GitHub Projects data. Shows epic progress bars, HITL items awaiting review, blocked tasks, and what's ready to start.
 
+### 8. Bootstrap the engineering wiki (one-time)
+
+```
+/specflow:wiki-init
+```
+
+Detects the current state of `docs/wiki/`, proposes a diff of every directory to create, file to seed, and amendment to your root `CLAUDE.md`, then applies on approval. Idempotent — re-run for repair or schema bumps.
+
+### 9. Compile the wiki end-of-sprint
+
+```
+/specflow:wiki
+/specflow:wiki --scope interfaces
+```
+
+Runs `@wiki-curator` Mode B against the full curated tree: processes the pending queue, checks cross-link integrity, detects stale and contradicted pages, proposes confidence promotions and demotions, surfaces pattern-promotion candidates, refreshes `_hot.md`, updates `index.md`, and appends to `_log.md`. Output is a diff proposal; nothing is written without owner approval.
+
 ## Commands
 
 | Command | Purpose | Output |
@@ -195,6 +214,8 @@ Queries live GitHub Projects data. Shows epic progress bars, HITL items awaiting
 | `/specflow:publish` | Plan → GitHub issues (with confirmation) | `docs/specflow/published/<slug>-receipt.md` |
 | `/specflow:implement` | Issue → TDD execution | TDD artifacts |
 | `/specflow:status` | Live Kanban status report | Console output |
+| `/specflow:wiki-init` | Bootstrap or repair the engineering wiki | `docs/wiki/` layout + root `CLAUDE.md` amendment |
+| `/specflow:wiki` | End-of-sprint compilation pass over the curated wiki | Diff proposal → `docs/wiki/wiki/` updates |
 
 ## Project Configuration
 
@@ -270,20 +291,129 @@ Icebox → To Do (Ready) → In Progress (Triad Active) → HITL Review → Done
 
 Forbidden transitions are enforced: you can't skip from Icebox to In Progress, or from In Progress to Done.
 
+## Engineering Wiki
+
+The wiki is specflow's third pillar, alongside the EARS → Contract pipeline and the GitHub Kanban workflow. It is an **LLM-curated, project-specific second brain** that captures decisions, domain knowledge, public contracts, user journeys, runbooks, dependencies, and policies as they emerge during the development loop — and feeds the downstream documentation surfaces that product, ops, and compliance care about.
+
+The shape draws directly from two ideas:
+
+- Andrej Karpathy's [LLM wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — the "second brain" pattern where an LLM librarian distils append-only sources into a curated layer and re-lints the result periodically.
+- The [*Towards Data Science* article on giving AI unlimited, updated context](https://towardsdatascience.com/give-your-ai-unlimited-updated-context/) — which adds the control-file plumbing (pending queue, hot cache, audit log) that makes the loop reliable across cycles.
+
+Everything the curator writes is preceded by a diff proposal. Nothing is applied without owner approval — same HITL discipline as the REFACTOR gate.
+
+### Layout
+
+```
+docs/wiki/
+├── sources/                     # Append-only; populated by the TDD orchestrator
+│   ├── cycles/                  # One archived cycle report per Triad cycle
+│   ├── decisions/               # Owner-decision artefacts from HITL gates
+│   └── _pending.md              # Compilation queue (control file)
+└── wiki/                        # Curated; only @wiki-curator writes here
+    ├── CLAUDE.md                # Wiki schema (auto-loaded inside docs/wiki/)
+    ├── _hot.md                  # < 500 token briefing — read first
+    ├── _log.md                  # Append-only audit trail of every curator run
+    ├── index.md                 # Catalog — read second
+    ├── glossary.md              # One-line term definitions
+    ├── lessons.md               # Cross-cycle anti-patterns and rules
+    ├── decisions/               # ADRs
+    ├── domains/                 # Domain primers
+    ├── patterns/                # Code patterns (gated by "Name 3")
+    ├── interfaces/              # APIs we expose
+    ├── flows/                   # End-to-end user journeys
+    ├── runbooks/                # Operational procedures
+    ├── dependencies/            # External services we consume
+    ├── policies/                # Non-functional cross-cutting rules
+    └── risks/                   # Threat-model entries / known-risk register
+```
+
+The split is the central invariant: `sources/` is the immutable raw record, `wiki/` is the curated derivative. If the curated layer drifts, the recovery path is rebuild-from-sources.
+
+### Categories that feed product documentation
+
+Each curated category maps to a downstream documentation surface, so the wiki is upstream of help docs, ops docs, compliance docs, and architecture diagrams — not parallel to them.
+
+| Category | What it captures | Feeds (downstream) |
+|---|---|---|
+| `decisions/` | ADRs (300–500 words, five sections) | Architecture decision register |
+| `domains/` | Internal mental models (six sections) | Engineering onboarding |
+| `patterns/` | Reusable mechanics gated by "Name 3" | Internal best-practice catalog |
+| `interfaces/` | What we **expose** — HTTP / TS / GraphQL / RPC / CLI / events | Partner docs, SDK reference, public API docs |
+| `flows/` | End-to-end user journeys (happy path + branches) | Help center, onboarding, QA scenarios, support |
+| `runbooks/` | Operational procedures with verification + rollback | On-call playbook, incident response, admin guides |
+| `dependencies/` | External services we **consume**, with criticality + fallback | Architecture diagrams, deps page, blast-radius analysis |
+| `policies/` | Non-functional rules (retention, GDPR, SLOs, access) | Compliance, trust page, security overview |
+| `risks/` | Threat-model entries with severity / likelihood / status / mitigation | Security overview, audit prep, blast-radius analysis |
+
+### Control files (the Karpathy / TDS plumbing)
+
+Four files coordinate cadence and provide audit / orientation. Without them, per-cycle distillation can silently lose work and the end-of-sprint pass has no way to know what is fresh.
+
+- **`sources/_pending.md`** — the compilation queue. Bridges per-cycle distillation (Mode A) and end-of-sprint compilation (Mode B). When a Mode A run is skipped (token budget, time pressure, agent crash), its line stays `[PENDING]` so Mode B picks it up. The curator may only flip `[PENDING] → [COMPILED]` on existing lines — never add, delete, or reorder. This is the single carve-out for writes under `sources/`.
+- **`wiki/_log.md`** — append-only audit trail. Every successful curator run appends one entry (mode, subject, files written, confidence changes, watchlist additions). No-op Mode B runs still log so freshness can be measured. Historical entries are never edited; corrections reference the original by timestamp.
+- **`wiki/_hot.md`** — the hot cache. A < 500 token briefing of what is load-bearing right now: active decisions, open OWNER DECISIONS, recent confidence changes, watchlist patterns, health metrics (pending depth, days since last Mode A/B, stale primer count). Refreshed only by Mode B, so Mode A stays cheap.
+- **`wiki/index.md`** — the catalog. Re-listed in full on every Mode B run; carries the confidence level inline for each page.
+
+When any agent consults the wiki at runtime, the mandatory read order is `_hot.md` → `index.md` → specific files. The wiki schema file (`docs/wiki/wiki/CLAUDE.md`) is auto-loaded by Claude Code whenever an agent works in the wiki tree, so the order is enforced at the schema layer.
+
+### Confidence dial and the "Name 3" rule
+
+Every curated file carries a `confidence` field: `high` (owner-confirmed, safe to cite externally), `medium` (derived from documented sources, not yet battle-tested), `low` (inferred from a single cycle, treat as hypothesis).
+
+- **Promotion** (`medium → high`) is **owner-only**. The curator may *propose* a promotion in a diff with rationale; it never applies one unilaterally.
+- **Demotion** is **curator-allowed** as a safety move when a more recent cycle contradicts the file. Demotions always appear in the diff proposal — never silent.
+
+Patterns are gated by **"Name 3"**: a pattern earns a `patterns/` page only when three known consumers exist in the codebase, each listed by file path. Two consumers go on a watchlist comment in the Mode B proposal; one is just a coincidence.
+
+### Two modes, two cadences
+
+- **Mode A — per-cycle distillation.** Invoked by the project's TDD orchestrator (e.g. `triad.md` Phase 8.5) immediately after a cycle archives its report under `sources/cycles/`. Token budget: < 5K. The curator reads the cycle report, `_hot.md`, `index.md`, `glossary.md`, and any wiki files the cycle names by path — never the full tree. It produces a small diff proposal: candidate ADRs, glossary updates, lesson updates, primer touches, pattern-promotion borderlines, interface/flow/runbook/dependency/policy candidates.
+- **Mode B — end-of-sprint compilation.** Invoked by `/specflow:wiki`. Token budget: the full wiki tree. The curator walks a twelve-step checklist: load tree → process the pending queue → cross-link integrity → stale detection → confidence drift (promotions and demotions) → pattern promotion candidates → deduplication → missing pages → interface surface scan → flow / runbook / dependency / policy scan → refresh `_hot.md` → update `index.md` → append `_log.md`.
+
+Mode B supports a `--scope` filter to narrow the pass to one category (`decisions`, `domains`, `patterns`, `interfaces`, `flows`, `runbooks`, `dependencies`, `policies`, `risks`, `glossary`, or `lessons`) while still respecting the full-tree budget for cross-link integrity.
+
+### The two-pass HITL discipline
+
+Every curator run is two passes, and the two passes must not be combined.
+
+1. **Pass 1 — Read + Propose.** No writes. Output is a single Markdown diff proposal listing new files, modified files, confidence changes, watchlist additions, format-imitation references, and questions for the owner. The diff also carries the queue flips, `_hot.md` rebuild, `index.md` update, and `_log.md` append.
+2. **HITL gate.** The owner replies approve / modify / reject. Subset approvals ("apply ADR-007, defer the glossary edits") are treated as modify.
+3. **Pass 2 — Apply.** Writes only the approved diff. On rejection, nothing is written.
+
+The curator is read-only on production code and writes only inside `docs/wiki/wiki/` — with the single carve-out for `[PENDING] → [COMPILED]` flips on existing lines of `_pending.md`. The command guards against boundary violations defensively even though the agent's prompt body already forbids them.
+
+### `/specflow:wiki-init`
+
+The single entry point for adopting the wiki in a new project, repairing partial state, or bumping the schema version when this plugin ships a newer layout. Idempotent — safe to re-run.
+
+What it does:
+
+- Creates the `docs/wiki/sources/` (append-only) and `docs/wiki/wiki/` (curated) tree.
+- Seeds the four control files (`_pending.md`, `_log.md`, `_hot.md`, `index.md`) plus `glossary.md` and `lessons.md`.
+- Seeds nine category templates (one per `decisions/`, `domains/`, `patterns/`, `interfaces/`, `flows/`, `runbooks/`, `dependencies/`, `policies/`, `risks/`).
+- Writes the wiki schema file at `docs/wiki/wiki/CLAUDE.md`, which is auto-loaded by Claude Code whenever an agent works in the wiki tree.
+- Amends the project root `CLAUDE.md` with a `## Engineering Wiki` block between idempotent marker comments (`<!-- specflow:wiki-policies:start -->` / `<!-- specflow:wiki-policies:end -->`). Pass `--no-root-amend` to skip this.
+- Pins the schema version (`schema_version: 1` today) in the wiki `CLAUDE.md` frontmatter, so future schema bumps are detected and proposed as migration diffs.
+
+The command follows the same two-pass HITL discipline: it detects the current state, computes a delta against the target schema version, surfaces a diff proposal, and writes only on approval. Existing files are never overwritten — owner-edited content always wins, even during schema bumps.
+
 ## Integration
 
 specflow is designed to compose with existing tools:
 
-- **[triad](https://github.com/batidiane/triad)** — companion plugin, a multi-agent TDD orchestrator (DESIGN → RED → GREEN → REFACTOR → QUALITY). `/specflow:implement` invokes `/triad` automatically if it's installed, passing the Prompt Contract as the task spec.
+- **[triad](https://github.com/batidiane/triad)** — companion plugin, a multi-agent TDD orchestrator (DESIGN → RED → GREEN → REFACTOR → QUALITY). `/specflow:implement` invokes `/triad` automatically if it's installed, passing the Prompt Contract as the task spec. The wiki's per-cycle distillation (Mode A) is designed to fit in as a Phase 8.5 step that archives the cycle report under `docs/wiki/sources/cycles/` and queues it for the curator.
 - **[superpowers](https://github.com/obra/superpowers)** — specflow is fully compatible. If `/triad` isn't available, `/specflow:implement` falls back to `superpowers:test-driven-development`. The `superpowers:brainstorming`, `writing-plans`, and `verification-before-completion` skills all pair naturally with the specflow pipeline.
 - **Brainstorming** — upstream idea exploration (e.g. `superpowers:brainstorming`) feeds into `/specflow:specify`.
 - **Code review** — the human gate at HITL Review integrates with your existing PR workflow.
-- **Existing agents** — any tester, implementer, or architect agent you already use can consume Prompt Contracts as their exact spec.
+- **Existing agents** — any tester, implementer, or architect agent you already use can consume Prompt Contracts as their exact spec, and any cycle they archive into `docs/wiki/sources/cycles/` becomes raw material for the curator.
 
 ## Inspiration & Related Work
 
 - [EARS](https://alistairmavin.com/ears/) — Alistair Mavin's Easy Approach to Requirements Syntax ([2009 IEEE paper](https://ieeexplore.ieee.org/document/5328509/))
 - [Prompt Contracts](https://medium.com/@enkidu.risk/prompt-contracts-my-ai-went-from-guessing-to-shipping-professional-80d92edeace2) — enkidurisk's four-section contract (GOAL / CONSTRAINTS / FORMAT / FAILURE CONDITIONS) for deterministic AI agent instructions
+- [Karpathy's LLM wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — the LLM-as-librarian second-brain pattern the engineering wiki implements
+- [Give your AI unlimited, updated context](https://towardsdatascience.com/give-your-ai-unlimited-updated-context/) — Towards Data Science article on the control-file plumbing that makes the wiki loop reliable
 - [spec-kit](https://github.com/github/spec-kit) — GitHub's comprehensive specification-driven development toolkit; specflow aims for a lighter alternative
 - [superpowers](https://github.com/obra/superpowers) — Claude Code skills framework; specflow is fully compatible and can delegate to it
 - [triad](https://github.com/batidiane/triad) — companion multi-agent TDD orchestrator; `/specflow:implement` prefers it when available

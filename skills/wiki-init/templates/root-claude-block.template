@@ -1,0 +1,37 @@
+<!-- specflow:wiki-policies:start -->
+## Engineering Wiki
+
+The engineering wiki lives at `docs/wiki/`. It is a Karpathy-style second brain
+maintained by `@wiki-curator` under two-pass HITL discipline. The wiki has two
+halves: `docs/wiki/sources/` is append-only (populated by the TDD orchestrator
+and owner-decision capture); `docs/wiki/wiki/` is curated by `@wiki-curator`
+only.
+
+**Read order when consulting the wiki (mandatory):**
+
+1. `docs/wiki/wiki/_hot.md` — < 500 token briefing of current state.
+2. `docs/wiki/wiki/index.md` — catalog of every curated page.
+3. Specific files (ADRs, primers, patterns, glossary, lessons) only after the
+   first two have framed the search.
+
+**Hard rules:**
+
+- Never edit `docs/wiki/sources/`. It is the source of truth — if the curated
+  layer drifts, recovery is rebuild-from-sources.
+- Never invent facts not present in `sources/` or the codebase.
+- Never silently change a wiki file's `confidence:` frontmatter — promotions
+  are owner-only, demotions are curator-allowed but always proposed in a diff.
+- Format consistency outranks novelty. Imitate the seed exemplars; a "better"
+  idea about format goes in the diff as an OWNER DECISION.
+
+**Commands:**
+
+- `/specflow:wiki-init` — bootstrap or repair the wiki layout (idempotent).
+- `/specflow:wiki` — end-of-sprint compilation pass (Mode B).
+- Per-cycle distillation (Mode A) is invoked by the project's TDD orchestrator
+  (e.g. `triad.md` Phase 8.5).
+
+For the full schema, folder map, and operating rules, see
+`docs/wiki/wiki/CLAUDE.md` (auto-loaded by Claude Code when working inside the
+wiki tree).
+<!-- specflow:wiki-policies:end -->

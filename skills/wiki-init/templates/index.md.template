@@ -1,0 +1,74 @@
+---
+title: Wiki Index
+last_updated: __TODAY__
+---
+
+# Engineering Wiki — Index
+
+Catalog of every curated page in this wiki. Updated by `@wiki-curator` at the end of every Mode B run. Read this **after** `_hot.md` and **before** specific files.
+
+## Decisions (ADRs)
+
+<!-- Mode B lists every ADR by ID and title. Format: - [ADR-NNN — title](decisions/ADR-NNN-slug.md) — confidence: <level> -->
+
+_(none yet)_
+
+## Domain primers
+
+<!-- Mode B lists every primer. Format: - [<domain>](domains/<slug>.md) — confidence: <level> -->
+
+_(none yet)_
+
+## Patterns
+
+<!-- Mode B lists every pattern. Format: - [<pattern>](patterns/<slug>.md) — 3 consumers -->
+
+_(none yet)_
+
+## Interfaces (APIs we expose)
+
+<!-- Mode B lists every interface. Format: - [<name>](interfaces/<slug>.md) — kind: <kind> — stability: <stable|experimental|deprecated> — audience: <internal|external|both> — confidence: <level> -->
+
+_(none yet)_
+
+## Flows (user journeys)
+
+<!-- Mode B lists every flow. Format: - [<name>](flows/<slug>.md) — actor: <actor> — confidence: <level> -->
+
+_(none yet)_
+
+## Runbooks (operational procedures)
+
+<!-- Mode B lists every runbook. Format: - [<name>](runbooks/<slug>.md) — severity: <s> — last_drilled: <date> — confidence: <level> -->
+
+_(none yet)_
+
+## Dependencies (external services we consume)
+
+<!-- Mode B lists every dependency. Format: - [<name>](dependencies/<slug>.md) — kind: <k> — criticality: <c> — fallback: <f> — confidence: <level> -->
+
+_(none yet)_
+
+## Policies (non-functional rules)
+
+<!-- Mode B lists every policy. Format: - [<name>](policies/<slug>.md) — scope: <s> — authority: <a> — enforcement: <e> — confidence: <level> -->
+
+_(none yet)_
+
+## Risks (threat-model / known-risk register)
+
+<!-- Mode B lists every risk. Format: - [<name>](risks/<slug>.md) — kind: <k> — severity: <s> — likelihood: <l> — status: <st> — confidence: <level> -->
+
+_(none yet)_
+
+## Glossary & lessons
+
+- [Glossary](glossary.md)
+- [Lessons](lessons.md)
+
+## Control files
+
+- [Schema (CLAUDE.md)](CLAUDE.md)
+- [Hot cache (_hot.md)](_hot.md)
+- [Audit log (_log.md)](_log.md)
+- [Compilation queue (sources/_pending.md)](../sources/_pending.md)

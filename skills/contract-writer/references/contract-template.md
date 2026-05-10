@@ -70,6 +70,12 @@ Ordered list of hard boundaries. Three categories:
 
 Exact output specification. The implementer knows precisely what files to create.
 
+If the contract introduces an artifact that requires a separate registration or binding
+site to become reachable or active in production (e.g. a route, mux registration,
+scheduler entry, message subscription, command registration, migration list entry, etc.),
+FORMAT must name **both** the artifact file and its binding site. An artifact without
+its binding ships unreachable.
+
 ```
 - File: api/internal/domain/wellbeing.go
 - Exported: CalculateWHO5Score(answers [5]int) (int, error)

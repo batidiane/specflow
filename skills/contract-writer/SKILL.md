@@ -90,6 +90,10 @@ For each group, write the four mandatory sections:
 - Exported symbol names and signatures (for Go: function signatures; for TS: type exports)
 - Test file path
 - Any naming conventions specific to this task
+- **If FORMAT names a new mobile screen component file:** add the "Routing & Navigation"
+  subsection (see `references/contract-template.md`). Required fields: router entry file
+  path, nav entry, layout file, deep-link. Every new router directory needs a layout file
+  in FORMAT. Omitting this subsection blocks the pre-RED gate in `/specflow:implement`.
 
 ### FAILURE CONDITIONS
 - Each is a checkbox: `- [ ] [description — maps to REQ-###]`
@@ -235,5 +239,7 @@ Next: /specflow:plan docs/specflow/contracts/<slug>.md
 - [ ] No circular dependencies exist
 - [ ] Project constraints from config are injected where applicable
 - [ ] Scope Discipline block (SCOPE-001..006) is present in every contract's CONSTRAINTS
+- [ ] Every screen-introducing contract has a "Routing & Navigation" subsection with router
+      entry path, nav entry, layout file, and deep-link
 - [ ] No spec-gap found during contracting was filed as a GitHub issue (SCOPE-005 — if a
       gap is discovered, pause and route it back through `/specflow:specify`)

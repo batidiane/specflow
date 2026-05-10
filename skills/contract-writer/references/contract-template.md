@@ -79,6 +79,27 @@ Exact output specification. The implementer knows precisely what files to create
 - Test file: api/internal/handlers/wellbeing_handler_test.go
 ```
 
+#### Routing & Navigation (required when FORMAT names a new mobile screen component)
+
+If this contract introduces a new screen component (e.g. a file ending in `Screen.tsx`),
+add this subsection — the screen component file alone does not make a route reachable:
+
+```
+### Routing & Navigation
+- Route file: <router-entry-path>     # file that registers the screen in the router
+                                       # e.g. mobile/app/auth/login.tsx for Expo Router
+- Nav entry: <ScreenName> → navigates via <element> on <ParentScreen>
+- Layout: <which layout file this screen joins, or 'create <group>/_layout'>
+- Deep-link: <scheme://path> or N/A
+```
+
+**Rules:**
+- Every new router directory must have a layout file — include it in FORMAT if it does
+  not already exist at that path in the repo.
+- Project-specific routing conventions (URL prefixes, group naming) belong in the project's
+  TDD orchestrator config, not here.
+- Omitting this subsection from a screen-introducing contract blocks the pre-RED gate.
+
 ### FAILURE CONDITIONS
 
 Checkbox list. Each maps to a specific REQ-### and becomes a RED phase test.

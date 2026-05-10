@@ -32,6 +32,27 @@ Before running:
    - If it's in "HITL Review": STOP — "This task is awaiting HITL review, not implementation."
    - If it's in "Icebox": Warn — "This task hasn't been moved to To Do yet. Implement anyway?"
 
+4.5. **Pre-RED Mobile Routing Gate** — run if FORMAT names any new mobile screen component file:
+
+   a. Scan FORMAT for a router entry file path (the file that registers the screen in the
+      project's router framework, e.g. `mobile/app/<path>.tsx` for Expo Router).
+   b. **If no router entry path is present → STOP. Do not move to In Progress.**
+      Surface as a blocking ambiguity:
+      > "Contract introduces `{ScreenName}` but FORMAT has no router entry file.
+      > Answer all four before RED phase starts:
+      > 1. Router entry: exact file path that registers this screen in the router
+      > 2. Nav entry: which screen + which UI element navigates here
+      > 3. Layout: which layout file this screen joins, or 'create <group>/_layout'
+      > 4. Deep-link: scheme path or N/A
+      > This is a 5-minute contract amendment. Provide answers and update FORMAT before continuing."
+
+   c. **Layout file check:** If the router entry's directory does not have a layout file
+      listed in FORMAT and no layout file exists at that path in the repo → add it to
+      the blocking ambiguity list above. Do not proceed until the layout file is named.
+
+   Project-specific routing conventions (URL prefixes, forbidden group patterns) are
+   enforced by the project's TDD orchestrator config, not by this generic gate.
+
 5. Move the task to "In Progress (Triad Active)" using `specflow:kanban` (auto-move, no confirmation needed).
 
 6. Extract the Prompt Contract sections and delegate to the TDD workflow:

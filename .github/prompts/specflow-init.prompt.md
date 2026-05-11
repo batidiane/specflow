@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Generate or update .specflow/config.md by analyzing the project's CLAUDE.md, repo structure, and GitHub metadata. Creates artifact directories if needed."
 tools: ['codebase', 'editFiles', 'fetch', 'githubRepo']
 ---

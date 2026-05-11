@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Transform a feature description or spec section into EARS requirements. Writes output to docs/specflow/ears/"
 tools: ['codebase', 'editFiles']
 ---

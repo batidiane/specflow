@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Run @wiki-curator in full compilation mode (Mode B) against docs/wiki/wiki/ — cross-link integrity, stale detection, confidence drift, pattern promotion candidates, deduplication, missing-page detection. Output is a diff proposal requiring owner approval. Typically end-of-sprint."
 tools: ['codebase', 'editFiles', 'changes']
 ---

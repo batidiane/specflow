@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: "Implement a specflow task using TDD. Reads the Prompt Contract, moves the task to In Progress, and delegates to the TDD workflow."
 tools: ['codebase', 'editFiles', 'findTestFiles', 'changes', 'problems', 'githubRepo']
 ---

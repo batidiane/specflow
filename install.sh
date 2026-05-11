@@ -12,11 +12,31 @@
 # Local clone:
 #   bash install.sh --platform=both
 #
-# Requires: bash 4+, git, mktemp, cp. (Standard on macOS/Linux dev machines.)
+# Requires: bash 3.2+, git, mktemp, cp, perl. (Standard on macOS/Linux dev machines.)
 #
-# The script clones the canonical specflow repo into a temp directory and copies
-# the platform-relevant files into the target project. Existing files are NOT
-# overwritten unless --force is passed — re-run with --force to update.
+# Install layouts by platform
+# ---------------------------
+#
+#   --platform=copilot (DEFAULT — minimal, clean root):
+#     AGENTS.md                            (required at root for Copilot/Codex/Gemini auto-discovery)
+#     .github/                             (Copilot prompts + custom agents)
+#     .specflow/skills/                    (vendored — referenced by .github/prompts/* via #file:)
+#     .specflow/agents/                    (vendored — referenced by .github/agents/* via #file:)
+#     .specflow.lock                       (install manifest)
+#
+#     The installer rewrites `#file:skills/` → `#file:.specflow/skills/` (and same for agents/)
+#     inside the copied prompts and agent wrappers, so #file: references resolve at runtime.
+#
+#   --platform=claude (canonical Claude Code plugin layout):
+#     AGENTS.md, skills/, agents/, commands/, .claude-plugin/ all at root.
+#     No path rewriting — the layout matches the source repo.
+#
+#   --platform=both (everything at root, no rewriting):
+#     Union of claude + .github/. Visual clutter at the project root, but symmetric
+#     with the source repo. Pick this if specflow IS the project rather than a
+#     dependency.
+#
+# Existing files are NOT overwritten unless --force is passed.
 
 set -euo pipefail
 
@@ -37,10 +57,9 @@ Usage:
 
 Options:
   --platform=<copilot|claude|both>  Which layer to install (default: copilot).
-                                    Copilot users typically pick 'copilot' or 'both';
-                                    Claude Code users install via '/plugin install'
-                                    and rarely need this script — but 'claude'/'both'
-                                    is supported for vendor-into-repo workflows.
+                                    copilot: hidden .specflow/ layout, clean root.
+                                    claude:  canonical root layout (matches /plugin install).
+                                    both:    union, root layout, no rewriting.
   --ref=<branch|tag|sha>            Git ref to install from (default: main).
   --target=<path>                   Install into a different directory (default: cwd).
   --force                           Overwrite existing files (use to update).
@@ -48,9 +67,10 @@ Options:
   -h, --help                        Show this help.
 
 Examples:
+  bash install.sh                                  # copilot, clean layout, no overwrite
   bash install.sh --platform=both --ref=v1.1.0
   bash install.sh --dry-run
-  curl -fsSL .../install.sh | bash -s -- --platform=both
+  curl -fsSL .../install.sh | bash -s -- --force   # update existing install
 
 Repo: https://github.com/batidiane/specflow
 EOF
@@ -75,19 +95,33 @@ case "$PLATFORM" in
   *) echo "Invalid --platform: $PLATFORM (expected: copilot, claude, or both)" >&2; exit 2 ;;
 esac
 
-# Resolve file set for the chosen platform.
-#   common     — payload + canonical AGENTS.md, needed by everyone.
-#   copilot    — Copilot Chat slash prompts and custom agents.
-#   claude     — Claude Code slash commands and plugin manifest.
-FILES_COMMON=( "AGENTS.md" "skills" "agents" )
-FILES_COPILOT=( ".github" )
-FILES_CLAUDE=( "commands" ".claude-plugin" )
-
-case "$PLATFORM" in
-  copilot) FILES=( "${FILES_COMMON[@]}" "${FILES_COPILOT[@]}" ) ;;
-  claude)  FILES=( "${FILES_COMMON[@]}" "${FILES_CLAUDE[@]}" ) ;;
-  both)    FILES=( "${FILES_COMMON[@]}" "${FILES_COPILOT[@]}" "${FILES_CLAUDE[@]}" ) ;;
-esac
+# pairs() prints "src:dst" lines for the chosen platform — one entry per top-level
+# file or directory to install. Bash 3-compatible (no associative arrays).
+pairs() {
+  case "$1" in
+    copilot)
+      echo "AGENTS.md:AGENTS.md"
+      echo "skills:.specflow/skills"
+      echo "agents:.specflow/agents"
+      echo ".github:.github"
+      ;;
+    claude)
+      echo "AGENTS.md:AGENTS.md"
+      echo "skills:skills"
+      echo "agents:agents"
+      echo "commands:commands"
+      echo ".claude-plugin:.claude-plugin"
+      ;;
+    both)
+      echo "AGENTS.md:AGENTS.md"
+      echo "skills:skills"
+      echo "agents:agents"
+      echo "commands:commands"
+      echo ".claude-plugin:.claude-plugin"
+      echo ".github:.github"
+      ;;
+  esac
+}
 
 # Sanity check the target dir.
 mkdir -p "$TARGET"
@@ -113,41 +147,82 @@ if ! git clone --depth 1 --branch "$REF" "https://github.com/${REPO}.git" "$TMPD
   exit 1
 fi
 
-# Copy each file/dir from the clone to the target.
+# Copy each pair (src in repo → dst in target).
 SKIPPED=0
 INSTALLED=0
-for f in "${FILES[@]}"; do
-  src="$TMPDIR/specflow/$f"
-  dst="$TARGET/$f"
+while IFS= read -r pair; do
+  src_rel="${pair%%:*}"
+  dst_rel="${pair#*:}"
+  src="$TMPDIR/specflow/$src_rel"
+  dst="$TARGET/$dst_rel"
 
   if [[ ! -e "$src" ]]; then
-    echo "  ⚠ source missing in repo: $f (skipping)"
+    echo "  ⚠ source missing in repo: $src_rel (skipping)"
     continue
   fi
 
   if [[ -e "$dst" && $FORCE -eq 0 ]]; then
-    echo "  ⊙ $f (already exists — pass --force to overwrite)"
+    echo "  ⊙ $dst_rel (already exists — pass --force to overwrite)"
     SKIPPED=$((SKIPPED + 1))
     continue
   fi
 
   if [[ $DRY_RUN -eq 1 ]]; then
-    echo "  + $f (would install)"
+    if [[ "$src_rel" == "$dst_rel" ]]; then
+      echo "  + $dst_rel (would install)"
+    else
+      echo "  + $dst_rel (would install — remapped from $src_rel)"
+    fi
     INSTALLED=$((INSTALLED + 1))
     continue
   fi
 
+  mkdir -p "$(dirname "$dst")"
   if [[ -d "$src" ]]; then
     mkdir -p "$dst"
     cp -R "$src/." "$dst/"
   else
     cp "$src" "$dst"
   fi
-  echo "  ✓ $f"
+  if [[ "$src_rel" == "$dst_rel" ]]; then
+    echo "  ✓ $dst_rel"
+  else
+    echo "  ✓ $dst_rel  (← $src_rel)"
+  fi
   INSTALLED=$((INSTALLED + 1))
-done
+done < <(pairs "$PLATFORM")
 
-# Write a lockfile so we can later detect 'installed via install.sh' and which ref.
+# For platform=copilot, the bulk content moves under .specflow/. Rewrite #file:
+# references in the copied prompts, agent wrappers, and AGENTS.md so they
+# resolve to the new locations.
+if [[ "$PLATFORM" == "copilot" && $DRY_RUN -eq 0 && $INSTALLED -gt 0 ]]; then
+  echo
+  echo "▶ Rewriting #file: references for hidden layout..."
+  REWRITE_TARGETS=()
+  [[ -f "$TARGET/AGENTS.md" ]] && REWRITE_TARGETS+=("$TARGET/AGENTS.md")
+  if [[ -d "$TARGET/.github/prompts" ]]; then
+    for f in "$TARGET"/.github/prompts/*.prompt.md; do
+      [[ -f "$f" ]] && REWRITE_TARGETS+=("$f")
+    done
+  fi
+  if [[ -d "$TARGET/.github/agents" ]]; then
+    for f in "$TARGET"/.github/agents/*.agent.md; do
+      [[ -f "$f" ]] && REWRITE_TARGETS+=("$f")
+    done
+  fi
+
+  for f in "${REWRITE_TARGETS[@]}"; do
+    perl -i -pe '
+      s|#file:skills/|#file:.specflow/skills/|g;
+      s|#file:agents/|#file:.specflow/agents/|g;
+      s|`skills/|`.specflow/skills/|g;
+      s|`agents/wiki-curator|`.specflow/agents/wiki-curator|g;
+    ' "$f"
+    echo "  ✓ rewrote $(basename "$f")"
+  done
+fi
+
+# Write the lockfile.
 if [[ $DRY_RUN -eq 0 && $INSTALLED -gt 0 ]]; then
   VERSION="$(cd "$TMPDIR/specflow" && git rev-parse --short HEAD)"
   cat > "$TARGET/.specflow.lock" <<EOF
@@ -158,6 +233,7 @@ commit: $VERSION
 platform: $PLATFORM
 installed: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
+  echo
   echo "  ✓ .specflow.lock (ref=$REF commit=$VERSION)"
 fi
 

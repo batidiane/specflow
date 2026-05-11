@@ -121,10 +121,10 @@ To share specflow with your team via project settings, add it to `.claude/settin
 
 specflow follows the **superpowers single-source-of-truth pattern**: skills are the payload, every agent gets a thin platform wrapper. There is no duplication of skill bodies into Copilot-specific instruction files.
 
-**Structure (canonical sources at the top, platform wrappers underneath):**
+**Source repo structure (canonical sources at the top, platform wrappers underneath):**
 
 ```
-AGENTS.md                              # agent-neutral canonical instructions
+AGENTS.md                              # agent-neutral canonical instructions (also installs at target root)
 skills/<name>/SKILL.md                 # canonical procedure for each pipeline step
 agents/wiki-curator.md                 # canonical wiki-curator agent
 
@@ -133,7 +133,7 @@ commands/*.md                          # Claude Code slash-command wrappers
 .github/agents/wiki-curator.agent.md   # Copilot wiki-curator wrapper
 ```
 
-Each Copilot prompt references `#file:skills/<name>/SKILL.md` for the procedure body — drift is structurally impossible, not policed by sync scripts.
+In the source repo, prompts reference `#file:skills/<name>/SKILL.md`. The Copilot installer (below) rewrites those references to `#file:.specflow/skills/<name>/SKILL.md` when it moves the skill payload into the hidden `.specflow/` namespace at the target — same content, different path. Drift between prompt and skill is structurally impossible at both layouts.
 
 **Quick install (one-liner).** From the target project's repo root:
 
@@ -141,26 +141,54 @@ Each Copilot prompt references `#file:skills/<name>/SKILL.md` for the procedure 
 curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash
 ```
 
-This drops `AGENTS.md`, `skills/`, `agents/`, and `.github/` into the current directory, then writes a `.specflow.lock` recording the version. Existing files are NOT overwritten — re-run with `--force` to update.
+Default install (`--platform=copilot`) drops a **clean hidden layout**:
+
+```
+your-project/
+├── AGENTS.md                        # required at root (Copilot/Codex/Gemini auto-discover here)
+├── .github/                         # Copilot prompts + custom agents
+│   ├── prompts/specflow-*.prompt.md
+│   └── agents/wiki-curator.agent.md
+├── .specflow/                       # vendored skills + agents (hidden — out of your way)
+│   ├── skills/
+│   └── agents/
+└── .specflow.lock                   # install manifest (ref + commit + platform + timestamp)
+```
+
+`#file:` references inside the prompts are rewritten during install — `#file:skills/...` becomes `#file:.specflow/skills/...` — so paths resolve at runtime. Existing files are NOT overwritten; re-run with `--force` to update.
 
 **Common flags:**
 
 ```bash
-# Install both Claude + Copilot layers (default is copilot-only)
+# Install both Claude + Copilot layers (root layout — skills/, agents/, commands/ visible)
 curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --platform=both
+
+# Claude-only canonical layout (rarely needed — Claude users normally use /plugin install)
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --platform=claude
 
 # Pin to a tag (or branch/commit SHA)
 curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --ref=v1.1.0
 
 # Preview before writing
 curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --dry-run
+
+# Update an existing install
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --force
 ```
 
-Full options: `bash install.sh --help`. Requires `git` (standard on dev machines).
+Full options: `bash install.sh --help`. Requires `git` and `perl` (standard on dev machines).
 
-**Why not `/plugin install` like Claude Code?** VS Code Copilot has no plugin marketplace for customization layers (prompts, agents, instructions). Files must live in the target project's repo. `install.sh` is the moral equivalent of `/plugin install` — one command, fetches the canonical sources, drops them at the right paths. An `npx specflow init` package is on the roadmap for tighter ergonomics (update semantics, conflict resolution, per-platform subcommands à la spec-kit).
+**Layout choice by platform:**
 
-**What auto-discovers what.** Copilot picks up `AGENTS.md` at the repo root, `.github/prompts/`, and `.github/agents/` with no manifest required. The skills under `skills/` are read on demand via the `#file:` references in each prompt — so the `skills/` directory must also be present in the target project.
+| Platform | Layout | When to pick |
+|---|---|---|
+| `copilot` (default) | hidden under `.specflow/`, `#file:` paths rewritten | specflow is added to an existing app; clean root preferred |
+| `claude` | canonical root (`skills/`, `agents/`, `commands/`, `.claude-plugin/`) | vendor-into-repo for Claude (most users skip and `/plugin install` instead) |
+| `both` | root union (everything visible at root) | specflow IS the project, or you want symmetric paths across platforms |
+
+**Why not `/plugin install` like Claude Code?** VS Code Copilot has no plugin marketplace for customization layers (prompts, agents, instructions). Files must live in the target project's repo. `install.sh` is the moral equivalent of `/plugin install` — one command, fetches the canonical sources, drops them at the right paths. An `npx specflow init` package is on the roadmap for tighter ergonomics (update semantics, conflict resolution per file, per-platform subcommands à la spec-kit).
+
+**What auto-discovers what.** Copilot picks up `AGENTS.md` at the repo root, `.github/prompts/`, and `.github/agents/` with no manifest required. The skills under `.specflow/skills/` are read on demand via the `#file:` references in each prompt.
 
 **Mapping (Claude Code → Copilot).**
 
@@ -175,8 +203,8 @@ Full options: `bash install.sh --help`. Requires `git` (standard on dev machines
 | `/specflow:status` | `/specflow-status` prompt |
 | `/specflow:wiki-init` | `/specflow-wiki-init` prompt |
 | `/specflow:wiki` | `/specflow-wiki` prompt |
-| `skills/*/SKILL.md` | **same file** — Copilot prompts reference it via `#file:` |
-| `agents/wiki-curator.md` | `.github/agents/wiki-curator.agent.md` (thin wrapper) |
+| `skills/*/SKILL.md` | **same file** — Copilot prompts reference it via `#file:` (path rewritten to `.specflow/skills/` on copilot-platform install) |
+| `agents/wiki-curator.md` | `.github/agents/wiki-curator.agent.md` (thin wrapper; references rewritten to `.specflow/agents/` on copilot-platform install) |
 | `CLAUDE.md` (Claude-specific) | `AGENTS.md` at repo root (agent-neutral; read by Copilot Chat) |
 
 **Usage.** In Copilot Chat, type `/specflow-specify` (etc.) to invoke a prompt; pass arguments inline. The `wiki-curator` custom agent is selectable from the agent picker — switch to it for any work under `docs/wiki/`.

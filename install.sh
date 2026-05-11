@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+#
+# specflow installer — bootstrap specflow into a project.
+#
+# Quick install (defaults: platform=copilot, ref=main):
+#   curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash
+#
+# With options:
+#   curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh \
+#     | bash -s -- --platform=both --ref=v1.1.0
+#
+# Local clone:
+#   bash install.sh --platform=both
+#
+# Requires: bash 4+, git, mktemp, cp. (Standard on macOS/Linux dev machines.)
+#
+# The script clones the canonical specflow repo into a temp directory and copies
+# the platform-relevant files into the target project. Existing files are NOT
+# overwritten unless --force is passed — re-run with --force to update.
+
+set -euo pipefail
+
+REPO="batidiane/specflow"
+REF="main"
+PLATFORM="copilot"
+TARGET="$(pwd)"
+FORCE=0
+DRY_RUN=0
+
+usage() {
+  cat <<'EOF'
+specflow installer — bootstrap specflow into a project.
+
+Usage:
+  curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash
+  bash install.sh [OPTIONS]
+
+Options:
+  --platform=<copilot|claude|both>  Which layer to install (default: copilot).
+                                    Copilot users typically pick 'copilot' or 'both';
+                                    Claude Code users install via '/plugin install'
+                                    and rarely need this script — but 'claude'/'both'
+                                    is supported for vendor-into-repo workflows.
+  --ref=<branch|tag|sha>            Git ref to install from (default: main).
+  --target=<path>                   Install into a different directory (default: cwd).
+  --force                           Overwrite existing files (use to update).
+  --dry-run                         Show what would be installed without writing.
+  -h, --help                        Show this help.
+
+Examples:
+  bash install.sh --platform=both --ref=v1.1.0
+  bash install.sh --dry-run
+  curl -fsSL .../install.sh | bash -s -- --platform=both
+
+Repo: https://github.com/batidiane/specflow
+EOF
+  exit "${1:-0}"
+}
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --platform=*) PLATFORM="${1#--platform=}"; shift ;;
+    --ref=*)      REF="${1#--ref=}"; shift ;;
+    --target=*)   TARGET="${1#--target=}"; shift ;;
+    --force)      FORCE=1; shift ;;
+    --dry-run)    DRY_RUN=1; shift ;;
+    -h|--help)    usage 0 ;;
+    *)            echo "Unknown arg: $1" >&2; usage 2 ;;
+  esac
+done
+
+case "$PLATFORM" in
+  copilot|claude|both) ;;
+  *) echo "Invalid --platform: $PLATFORM (expected: copilot, claude, or both)" >&2; exit 2 ;;
+esac
+
+# Resolve file set for the chosen platform.
+#   common     — payload + canonical AGENTS.md, needed by everyone.
+#   copilot    — Copilot Chat slash prompts and custom agents.
+#   claude     — Claude Code slash commands and plugin manifest.
+FILES_COMMON=( "AGENTS.md" "skills" "agents" )
+FILES_COPILOT=( ".github" )
+FILES_CLAUDE=( "commands" ".claude-plugin" )
+
+case "$PLATFORM" in
+  copilot) FILES=( "${FILES_COMMON[@]}" "${FILES_COPILOT[@]}" ) ;;
+  claude)  FILES=( "${FILES_COMMON[@]}" "${FILES_CLAUDE[@]}" ) ;;
+  both)    FILES=( "${FILES_COMMON[@]}" "${FILES_COPILOT[@]}" "${FILES_CLAUDE[@]}" ) ;;
+esac
+
+# Sanity check the target dir.
+mkdir -p "$TARGET"
+TARGET="$(cd "$TARGET" && pwd)"
+
+# Clone the repo into a throwaway temp dir.
+TMPDIR="$(mktemp -d -t specflow-install.XXXXXX)"
+trap 'rm -rf "$TMPDIR"' EXIT
+
+echo "▶ specflow installer"
+echo "  Repo:     $REPO"
+echo "  Ref:      $REF"
+echo "  Platform: $PLATFORM"
+echo "  Target:   $TARGET"
+[[ $DRY_RUN -eq 1 ]] && echo "  Mode:     DRY-RUN (no files will be written)"
+echo
+
+echo "▶ Fetching $REPO@$REF..."
+if ! git clone --depth 1 --branch "$REF" "https://github.com/${REPO}.git" "$TMPDIR/specflow" >/dev/null 2>&1; then
+  echo "✗ Clone failed. Verify:" >&2
+  echo "    - network access to https://github.com/$REPO" >&2
+  echo "    - ref '$REF' exists on that repo" >&2
+  exit 1
+fi
+
+# Copy each file/dir from the clone to the target.
+SKIPPED=0
+INSTALLED=0
+for f in "${FILES[@]}"; do
+  src="$TMPDIR/specflow/$f"
+  dst="$TARGET/$f"
+
+  if [[ ! -e "$src" ]]; then
+    echo "  ⚠ source missing in repo: $f (skipping)"
+    continue
+  fi
+
+  if [[ -e "$dst" && $FORCE -eq 0 ]]; then
+    echo "  ⊙ $f (already exists — pass --force to overwrite)"
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "  + $f (would install)"
+    INSTALLED=$((INSTALLED + 1))
+    continue
+  fi
+
+  if [[ -d "$src" ]]; then
+    mkdir -p "$dst"
+    cp -R "$src/." "$dst/"
+  else
+    cp "$src" "$dst"
+  fi
+  echo "  ✓ $f"
+  INSTALLED=$((INSTALLED + 1))
+done
+
+# Write a lockfile so we can later detect 'installed via install.sh' and which ref.
+if [[ $DRY_RUN -eq 0 && $INSTALLED -gt 0 ]]; then
+  VERSION="$(cd "$TMPDIR/specflow" && git rev-parse --short HEAD)"
+  cat > "$TARGET/.specflow.lock" <<EOF
+# specflow install manifest — auto-generated by install.sh
+# Re-run install.sh --force to update.
+ref: $REF
+commit: $VERSION
+platform: $PLATFORM
+installed: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+EOF
+  echo "  ✓ .specflow.lock (ref=$REF commit=$VERSION)"
+fi
+
+echo
+echo "▶ Summary: $INSTALLED installed, $SKIPPED skipped."
+[[ $SKIPPED -gt 0 ]] && echo "  Re-run with --force to overwrite skipped files."
+echo
+
+# Next-step hints per platform.
+case "$PLATFORM" in
+  copilot|both)
+    echo "Next (Copilot Chat in VS Code):"
+    echo "  1. Open this workspace in VS Code with Copilot Chat enabled."
+    echo "  2. Type '/specflow-init' to bootstrap .specflow/config.md."
+    ;;
+esac
+case "$PLATFORM" in
+  claude|both)
+    echo "Next (Claude Code):"
+    echo "  1. Run '/specflow:init' to bootstrap .specflow/config.md."
+    ;;
+esac
+echo
+echo "Docs: https://github.com/$REPO#readme"

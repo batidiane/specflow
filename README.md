@@ -135,7 +135,32 @@ commands/*.md                          # Claude Code slash-command wrappers
 
 Each Copilot prompt references `#file:skills/<name>/SKILL.md` for the procedure body — drift is structurally impossible, not policed by sync scripts.
 
-**Quick install.** Clone or copy the relevant files into the target project. Copilot auto-discovers `AGENTS.md` at the repo root, `.github/prompts/`, and `.github/agents/` with no manifest required. The skills under `skills/` are read on demand via the `#file:` references in each prompt — so the `skills/` directory must also be present in the target project.
+**Quick install (one-liner).** From the target project's repo root:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash
+```
+
+This drops `AGENTS.md`, `skills/`, `agents/`, and `.github/` into the current directory, then writes a `.specflow.lock` recording the version. Existing files are NOT overwritten — re-run with `--force` to update.
+
+**Common flags:**
+
+```bash
+# Install both Claude + Copilot layers (default is copilot-only)
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --platform=both
+
+# Pin to a tag (or branch/commit SHA)
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --ref=v1.1.0
+
+# Preview before writing
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --dry-run
+```
+
+Full options: `bash install.sh --help`. Requires `git` (standard on dev machines).
+
+**Why not `/plugin install` like Claude Code?** VS Code Copilot has no plugin marketplace for customization layers (prompts, agents, instructions). Files must live in the target project's repo. `install.sh` is the moral equivalent of `/plugin install` — one command, fetches the canonical sources, drops them at the right paths. An `npx specflow init` package is on the roadmap for tighter ergonomics (update semantics, conflict resolution, per-platform subcommands à la spec-kit).
+
+**What auto-discovers what.** Copilot picks up `AGENTS.md` at the repo root, `.github/prompts/`, and `.github/agents/` with no manifest required. The skills under `skills/` are read on demand via the `#file:` references in each prompt — so the `skills/` directory must also be present in the target project.
 
 **Mapping (Claude Code → Copilot).**
 

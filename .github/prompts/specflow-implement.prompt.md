@@ -64,6 +64,17 @@ At REFACTOR, apply:
 - Task stays in **HITL Review** until the user marks it Done after merge.
 - Print: *"Task #{number} is in HITL Review. After merging, run: `/specflow-status move {number} Done`"*.
 
+## Wiki distillation gate (mandatory final step)
+
+After the task is marked Done, ask: *"Cycle complete. Run `/specflow-wiki` (Mode A) now to distill decisions, patterns, and lessons into `docs/wiki/`? [yes / defer]"*
+
+- **yes** → invoke `/specflow-wiki` with Mode A scope on this cycle's artifacts. Two-pass HITL ensures nothing is written without owner approval of the Pass 1 diff proposal.
+- **defer** → print: *"Wiki distillation deferred. Run `/specflow-wiki` later (typically batched end of sprint). The cycle's artifacts remain in `docs/wiki/sources/_pending.md` until compiled."*
+
+This gate lives in `/specflow-implement` (not in any TDD workflow) because not every cycle runs through `/triad`. The Phase 8.5 distillation hook only fires when triad was the workflow — for `superpowers:test-driven-development` or the option-c self-drive fallback, this is the only distillation trigger the cycle gets. Never silently skip the gate.
+
+`/specflow-wiki` is safe to invoke even when `docs/wiki/sources/` has no pending entries — Mode A reports "nothing to distill" rather than failing.
+
 ## Reference
 
 - Kanban transitions: `skills/kanban/SKILL.md`.

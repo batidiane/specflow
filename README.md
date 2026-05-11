@@ -117,6 +117,72 @@ To share specflow with your team via project settings, add it to `.claude/settin
 }
 ```
 
+## GitHub Copilot support
+
+specflow follows the **superpowers single-source-of-truth pattern**: skills are the payload, every agent gets a thin platform wrapper. There is no duplication of skill bodies into Copilot-specific instruction files.
+
+**Structure (canonical sources at the top, platform wrappers underneath):**
+
+```
+AGENTS.md                              # agent-neutral canonical instructions
+skills/<name>/SKILL.md                 # canonical procedure for each pipeline step
+agents/wiki-curator.md                 # canonical wiki-curator agent
+
+commands/*.md                          # Claude Code slash-command wrappers
+.github/prompts/*.prompt.md            # Copilot slash-prompt wrappers (~30 LOC each)
+.github/agents/wiki-curator.agent.md   # Copilot wiki-curator wrapper
+```
+
+Each Copilot prompt references `#file:skills/<name>/SKILL.md` for the procedure body — drift is structurally impossible, not policed by sync scripts.
+
+**Quick install (one-liner).** From the target project's repo root:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash
+```
+
+This drops `AGENTS.md`, `skills/`, `agents/`, and `.github/` into the current directory, then writes a `.specflow.lock` recording the version. Existing files are NOT overwritten — re-run with `--force` to update.
+
+**Common flags:**
+
+```bash
+# Install both Claude + Copilot layers (default is copilot-only)
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --platform=both
+
+# Pin to a tag (or branch/commit SHA)
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --ref=v1.1.0
+
+# Preview before writing
+curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --dry-run
+```
+
+Full options: `bash install.sh --help`. Requires `git` (standard on dev machines).
+
+**Why not `/plugin install` like Claude Code?** VS Code Copilot has no plugin marketplace for customization layers (prompts, agents, instructions). Files must live in the target project's repo. `install.sh` is the moral equivalent of `/plugin install` — one command, fetches the canonical sources, drops them at the right paths. An `npx specflow init` package is on the roadmap for tighter ergonomics (update semantics, conflict resolution, per-platform subcommands à la spec-kit).
+
+**What auto-discovers what.** Copilot picks up `AGENTS.md` at the repo root, `.github/prompts/`, and `.github/agents/` with no manifest required. The skills under `skills/` are read on demand via the `#file:` references in each prompt — so the `skills/` directory must also be present in the target project.
+
+**Mapping (Claude Code → Copilot).**
+
+| Claude Code | Copilot equivalent |
+|---|---|
+| `/specflow:init` | `/specflow-init` prompt |
+| `/specflow:specify` | `/specflow-specify` prompt |
+| `/specflow:contract` | `/specflow-contract` prompt |
+| `/specflow:plan` | `/specflow-plan` prompt |
+| `/specflow:publish` | `/specflow-publish` prompt |
+| `/specflow:implement` | `/specflow-implement` prompt |
+| `/specflow:status` | `/specflow-status` prompt |
+| `/specflow:wiki-init` | `/specflow-wiki-init` prompt |
+| `/specflow:wiki` | `/specflow-wiki` prompt |
+| `skills/*/SKILL.md` | **same file** — Copilot prompts reference it via `#file:` |
+| `agents/wiki-curator.md` | `.github/agents/wiki-curator.agent.md` (thin wrapper) |
+| `CLAUDE.md` (Claude-specific) | `AGENTS.md` at repo root (agent-neutral; read by Copilot Chat) |
+
+**Usage.** In Copilot Chat, type `/specflow-specify` (etc.) to invoke a prompt; pass arguments inline. The `wiki-curator` custom agent is selectable from the agent picker — switch to it for any work under `docs/wiki/`.
+
+**Why this works.** Skills are written in Claude Code tool vocabulary (`Read`, `Write`, `Bash`, `Skill`, `Grep`). When Copilot loads a skill via `#file:`, the prompt wrapper instructs it to translate at the tool level — `Bash` → terminal tool, `Read` → `#codebase`, `Write` → `#editFiles`, and so on. The translation table lives in `AGENTS.md` (§ Tool surface translation). One procedure, many runtimes.
+
 ## Quick Start
 
 ### 1. Initialize your project

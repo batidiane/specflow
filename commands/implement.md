@@ -76,3 +76,25 @@ Before running:
    - The task stays in "HITL Review" until the user explicitly marks it Done
    - Print: "Task #{number} is in HITL Review. After merging, run:
      `/specflow:status move {number} Done`"
+
+9. Wiki distillation gate (mandatory final step — runs regardless of TDD workflow):
+   After the task is marked Done, ask:
+   "Cycle complete. Run `/specflow:wiki` (Mode A) now to distill decisions, patterns,
+   and lessons from this cycle into `docs/wiki/`? [yes / defer]"
+
+   - **yes** → invoke `/specflow:wiki` with Mode A scope on this cycle's artifacts.
+     The wiki run is two-pass HITL — nothing is written to `docs/wiki/wiki/` without
+     owner approval of the Pass 1 diff proposal.
+   - **defer** → print: "Wiki distillation deferred. Run `/specflow:wiki` later
+     (typically batched end of sprint). The cycle's artifacts remain in
+     `docs/wiki/sources/_pending.md` until compiled."
+
+   This gate lives in `/specflow:implement` (not in any specific TDD workflow)
+   because not every cycle runs through `/triad`. The triad-only Phase 8.5
+   distillation hook does not fire for `superpowers:test-driven-development` or
+   other TDD paths — so `/specflow:implement` owns the trigger as the universal
+   final gate. Never silently skip this step. The TDD cycle is incomplete until
+   the wiki gate has been offered.
+
+   Note: `/specflow:wiki` is safe to invoke even when `docs/wiki/sources/` has no
+   new pending entries — Mode A reports "nothing to distill" rather than failing.

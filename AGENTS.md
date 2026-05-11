@@ -85,11 +85,11 @@ Skills are written in Claude Code tool vocabulary (`Read`, `Write`, `Edit`, `Bas
 
 | Claude Code | Copilot Chat | Codex / Gemini |
 |---|---|---|
-| `Read` | `#codebase` (read file via path reference) | native file read |
-| `Write` / `Edit` | `#editFiles` | native edit |
+| `Read` | `#search/codebase` (read file via path reference) | native file read |
+| `Write` / `Edit` | `#edit/editFiles` | native edit |
 | `Bash` | terminal tool | shell tool |
 | `Skill` (load by name) | `#file:skills/<name>/SKILL.md` (reference body) | inline-read same path |
-| `Grep` / `Glob` | `#search` / file picker | native search |
+| `Grep` / `Glob` | `#search/codebase` / file picker | native search |
 
 This is a translation table, not a divergence. The skill procedure is identical across runtimes.
 

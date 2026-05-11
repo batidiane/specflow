@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Create GitHub milestones, issues, and sub-issues from a specflow plan. Requires explicit confirmation before any GitHub operations."
-tools: ['codebase', 'editFiles', 'githubRepo']
+tools: ['search/codebase', 'edit/editFiles', 'githubRepo']
 ---
 
 # /specflow-publish
@@ -28,7 +28,7 @@ Publish a specflow plan to GitHub: create milestones, issues, sub-issues, and pr
 
 **Canonical procedure: `#file:skills/github-publisher/SKILL.md`.** Read it and follow it exactly. The skill defines: input parsing, Check A (exact-title + label) + Check B (SCOPE-003 keyword search) duplicate detection, the decision matrix, preview format, `addSubIssue` GraphQL mutation (do NOT use `gh issue edit --add-sub-issue` — unreliable), execute-only-on-explicit-yes gate, partial-failure receipt protocol, and receipt format.
 
-Translate Claude tool references per `#file:AGENTS.md` (§ Tool surface translation). `Bash` invocations are real `gh` commands; the rest become `#codebase` / `#editFiles`.
+Translate Claude tool references per `#file:AGENTS.md` (§ Tool surface translation). `Bash` invocations are real `gh` commands; the rest become `#search/codebase` / `#edit/editFiles`.
 
 ## HITL gate (mandatory)
 

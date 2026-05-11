@@ -1,6 +1,6 @@
 ---
 description: "Engineering wiki curator. Two-pass HITL on every write. Read-only on production code; writes restricted to docs/wiki/wiki/ with one carve-out for _pending.md status flips."
-tools: ['codebase', 'editFiles', 'fetch', 'findTestFiles', 'changes']
+tools: ['search/codebase', 'edit/editFiles', 'web/fetch', 'search/fileSearch', 'search/changes']
 ---
 
 # Wiki Curator (Copilot wrapper)
@@ -22,10 +22,10 @@ The canonical agent file uses Claude Code tool vocabulary. Translate per `#file:
 
 | Canonical (Claude) | Copilot |
 |---|---|
-| `Read` | `#codebase` |
-| `Edit` / `Write` | `#editFiles` (restricted to `docs/wiki/wiki/**`; carve-out for `_pending.md` status flips) |
+| `Read` | `#search/codebase` |
+| `Edit` / `Write` | `#edit/editFiles` (restricted to `docs/wiki/wiki/**`; carve-out for `_pending.md` status flips) |
 | `Bash` (read-only commands: `tree`, `grep`, `wc`, `find`, `git diff`, `git log`, `git status`) | terminal — **read-only only**, mutations forbidden |
-| `Glob` / `Grep` | `#search` |
+| `Glob` / `Grep` | `#search/codebase` |
 
 State-mutating shell commands (`git commit`, `git push`, `git add`, `git reset`, `git checkout`, `rm`, `mv`, `cp`, `mkdir` outside `docs/wiki/wiki/`) remain forbidden under any tool surface.
 

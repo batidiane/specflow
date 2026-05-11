@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Transform EARS requirements into atomic Prompt Contracts. Writes output to docs/specflow/contracts/"
-tools: ['codebase', 'editFiles']
+tools: ['search/codebase', 'edit/editFiles']
 ---
 
 # /specflow-contract

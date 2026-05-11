@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Transform a feature description or spec section into EARS requirements. Writes output to docs/specflow/ears/"
-tools: ['codebase', 'editFiles']
+tools: ['search/codebase', 'edit/editFiles']
 ---
 
 # /specflow-specify
@@ -12,7 +12,7 @@ Transform a free-form feature description or spec section into unambiguous EARS 
 
 ## Preconditions
 
-1. Check `.specflow/config.md` via `#codebase`. If present, read it and announce *"Loaded [project name] config"*. If missing, warn: *"⚠ No `.specflow/config.md` found. Output will lack project-specific constraints. Run `/specflow-init` first."* Continue anyway.
+1. Check `.specflow/config.md` via `#search/codebase`. If present, read it and announce *"Loaded [project name] config"*. If missing, warn: *"⚠ No `.specflow/config.md` found. Output will lack project-specific constraints. Run `/specflow-init` first."* Continue anyway.
 2. If the input is empty, ask: *"What feature or spec section should I formalize into EARS requirements? Provide a description or a file path."*
 
 ## Procedure

@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Implement a specflow task using TDD. Reads the Prompt Contract, moves the task to In Progress, and delegates to the TDD workflow."
-tools: ['codebase', 'editFiles', 'findTestFiles', 'changes', 'problems', 'githubRepo']
+tools: ['search/codebase', 'edit/editFiles', 'search/fileSearch', 'search/changes', 'read/problems', 'githubRepo']
 ---
 
 # /specflow-implement
@@ -40,7 +40,7 @@ Workflow selection (in order):
 
 a. **If `/triad` is available** in the project — invoke it with the full Prompt Contract (including SCOPE-001..006) as the task specification. **Preferred.**
 b. **Else if `superpowers:test-driven-development` is available** — fall back to it with the same input.
-c. **Else (Copilot-only fallback)** — self-drive RED → GREEN → REFACTOR using `#findTestFiles` to locate or create test files, `#changes` and `#problems` to inspect the diff and lint output, and `#editFiles` to apply changes. Same rigour as triad: write failing tests first, make them pass with the smallest change, then refactor under SCOPE-001..006.
+c. **Else (Copilot-only fallback)** — self-drive RED → GREEN → REFACTOR using `#search/fileSearch` to locate or create test files, `#search/changes` and `#read/problems` to inspect the diff and lint output, and `#edit/editFiles` to apply changes. Same rigour as triad: write failing tests first, make them pass with the smallest change, then refactor under SCOPE-001..006.
 
 ## REFACTOR gate (SCOPE-001..006 enforcement)
 

@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Bootstrap or repair the engineering wiki structure under docs/wiki/. Creates the Karpathy-style second-brain layout (sources/ + wiki/), seeds control files and templates, writes the wiki schema, and proposes amendments to the project root CLAUDE.md. Idempotent."
-tools: ['codebase', 'editFiles']
+tools: ['search/codebase', 'edit/editFiles']
 ---
 
 # /specflow-wiki-init

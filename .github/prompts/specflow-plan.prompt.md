@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Organize Prompt Contracts into a Vision→Epic→Feature→Task hierarchy with dependencies. Writes output to docs/specflow/plans/"
-tools: ['codebase', 'editFiles']
+tools: ['search/codebase', 'edit/editFiles']
 ---
 
 # /specflow-plan

@@ -209,7 +209,7 @@ Full options: `bash install.sh --help`. Requires `git` and `perl` (standard on d
 
 **Usage.** In Copilot Chat, type `/specflow-specify` (etc.) to invoke a prompt; pass arguments inline. The `wiki-curator` custom agent is selectable from the agent picker — switch to it for any work under `docs/wiki/`.
 
-**Why this works.** Skills are written in Claude Code tool vocabulary (`Read`, `Write`, `Bash`, `Skill`, `Grep`). When Copilot loads a skill via `#file:`, the prompt wrapper instructs it to translate at the tool level — `Bash` → terminal tool, `Read` → `#codebase`, `Write` → `#editFiles`, and so on. The translation table lives in `AGENTS.md` (§ Tool surface translation). One procedure, many runtimes.
+**Why this works.** Skills are written in Claude Code tool vocabulary (`Read`, `Write`, `Bash`, `Skill`, `Grep`). When Copilot loads a skill via `#file:`, the prompt wrapper instructs it to translate at the tool level — `Bash` → terminal tool, `Read` → `#search/codebase`, `Write` → `#edit/editFiles`, and so on. The translation table lives in `AGENTS.md` (§ Tool surface translation). One procedure, many runtimes.
 
 ## Quick Start
 

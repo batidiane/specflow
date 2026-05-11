@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Query GitHub Projects for task status. Shows epic progress, HITL items, blocked tasks, and ready-to-start items."
-tools: ['search/codebase', 'githubRepo']
+tools: ['search/codebase', 'web/githubRepo']
 ---
 
 # /specflow-status

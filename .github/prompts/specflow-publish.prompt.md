@@ -1,7 +1,7 @@
 ---
 agent: agent
 description: "Create GitHub milestones, issues, and sub-issues from a specflow plan. Requires explicit confirmation before any GitHub operations."
-tools: ['search/codebase', 'edit/editFiles', 'githubRepo']
+tools: ['search/codebase', 'edit/editFiles', 'web/githubRepo']
 ---
 
 # /specflow-publish

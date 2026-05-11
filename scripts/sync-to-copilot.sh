@@ -2,23 +2,24 @@
 #
 # sync-to-copilot.sh
 #
-# Regenerate .github/ Copilot Customization files from the canonical
-# Claude Code sources (commands/, skills/, agents/) and verify they're
-# in sync. Inspired by Superpowers' sync-to-codex-plugin.sh — same
-# pattern (canonical sources -> platform-specific layer), narrower scope.
+# Verify structural parity between the canonical Claude Code sources
+# (commands/, skills/, agents/, AGENTS.md) and the Copilot Customization
+# layer under .github/.
 #
-# This script does NOT translate prose. The .github/ files are hand-
-# authored translations (Copilot prompts and instructions diverge from
-# Claude SKILL.md bodies because tool surfaces differ). What the script
-# verifies is structural parity:
-#   - one .github/prompts/specflow-<cmd>.prompt.md per commands/<cmd>.md
-#   - one .github/instructions/specflow-<skill>.instructions.md per skills/<skill>/SKILL.md
-#   - one .github/chatmodes/<agent>.chatmode.md per agents/<agent>.md
+# specflow follows the superpowers SSoT pattern: skills/ is the payload,
+# AGENTS.md is the agent-neutral README. The Copilot layer is intentionally
+# thin — it does NOT duplicate skill bodies. Each .github/prompts/specflow-
+# <cmd>.prompt.md is a ~30-line wrapper that references
+# #file:skills/<name>/SKILL.md for the canonical procedure.
 #
-# Drift modes detected:
-#   - missing: a Copilot file that should exist for a given source.
-#   - orphan: a Copilot file with no matching source (deleted command/skill).
-#   - stale: a Copilot file older than its corresponding source by mtime.
+# This script verifies:
+#   - AGENTS.md exists at the repo root (agent-neutral canonical instructions).
+#   - one .github/prompts/specflow-<cmd>.prompt.md per commands/<cmd>.md.
+#   - one .github/agents/<agent>.agent.md per agents/<agent>.md.
+#   - no orphan files (prompts/agents that point at deleted sources).
+#
+# It does NOT compare bodies for drift, because the wrappers reference
+# skills via #file: — drift is structurally impossible.
 #
 # Output is human-readable. Exit codes:
 #   0 — in sync.
@@ -53,8 +54,7 @@ done
 # ----------------------------------------------------------------------
 
 declare -a EXPECTED_PROMPTS=()
-declare -a EXPECTED_INSTRUCTIONS=()
-declare -a EXPECTED_CHATMODES=()
+declare -a EXPECTED_AGENTS=()
 
 # Commands -> prompts
 for src in "$REPO_ROOT"/commands/*.md; do
@@ -63,66 +63,49 @@ for src in "$REPO_ROOT"/commands/*.md; do
   EXPECTED_PROMPTS+=( ".github/prompts/specflow-${base}.prompt.md" )
 done
 
-# Skills -> instructions (skip github-publisher: it operates via the GitHub
-# CLI which Copilot users typically don't run from VS Code chat).
-for skill_dir in "$REPO_ROOT"/skills/*/; do
-  [[ -d "$skill_dir" ]] || continue
-  skill="$(basename "$skill_dir")"
-  case "$skill" in
-    github-publisher) continue ;;
-  esac
-  EXPECTED_INSTRUCTIONS+=( ".github/instructions/specflow-${skill}.instructions.md" )
-done
-
-# Agents -> chatmodes
+# Agents -> .github/agents (Copilot custom agents)
 for src in "$REPO_ROOT"/agents/*.md; do
   [[ -f "$src" ]] || continue
   base="$(basename "$src" .md)"
-  EXPECTED_CHATMODES+=( ".github/chatmodes/${base}.chatmode.md" )
+  EXPECTED_AGENTS+=( ".github/agents/${base}.agent.md" )
 done
 
-EXPECTED_REPO_INSTRUCTION=".github/copilot-instructions.md"
+EXPECTED_AGENTS_MD="AGENTS.md"
 
 # ----------------------------------------------------------------------
 # --list: print expected files and exit.
 # ----------------------------------------------------------------------
 
 if [[ $LIST_ONLY -eq 1 ]]; then
-  echo "$EXPECTED_REPO_INSTRUCTION"
+  echo "$EXPECTED_AGENTS_MD"
   printf '%s\n' "${EXPECTED_PROMPTS[@]}"
-  printf '%s\n' "${EXPECTED_INSTRUCTIONS[@]}"
-  printf '%s\n' "${EXPECTED_CHATMODES[@]}"
+  printf '%s\n' "${EXPECTED_AGENTS[@]}"
   exit 0
 fi
 
 # ----------------------------------------------------------------------
-# Drift detection.
+# Drift detection (presence only — no body comparison).
 # ----------------------------------------------------------------------
 
 MISSING=()
 ORPHAN=()
-STALE=()
 
 # Helper: source path for a Copilot file. Reverse the naming rules.
 source_for() {
   local copilot="$1"
   case "$copilot" in
-    .github/copilot-instructions.md)
-      echo "$REPO_ROOT/README.md"  # repo-wide doc — track against README mtime
+    AGENTS.md)
+      # No upstream source — AGENTS.md IS the canonical instruction file.
+      echo ""
       ;;
     .github/prompts/specflow-*.prompt.md)
       local cmd="${copilot##*/specflow-}"
       cmd="${cmd%.prompt.md}"
       echo "$REPO_ROOT/commands/${cmd}.md"
       ;;
-    .github/instructions/specflow-*.instructions.md)
-      local skill="${copilot##*/specflow-}"
-      skill="${skill%.instructions.md}"
-      echo "$REPO_ROOT/skills/${skill}/SKILL.md"
-      ;;
-    .github/chatmodes/*.chatmode.md)
+    .github/agents/*.agent.md)
       local agent="${copilot##*/}"
-      agent="${agent%.chatmode.md}"
+      agent="${agent%.agent.md}"
       echo "$REPO_ROOT/agents/${agent}.md"
       ;;
     *)
@@ -134,25 +117,21 @@ source_for() {
 check_one() {
   local copilot="$1"
   local copilot_abs="$REPO_ROOT/$copilot"
-  local source_abs
-  source_abs="$(source_for "$copilot")"
 
   if [[ ! -f "$copilot_abs" ]]; then
-    MISSING+=( "$copilot (source: ${source_abs#$REPO_ROOT/})" )
-    return
-  fi
-
-  if [[ -n "$source_abs" && -f "$source_abs" ]]; then
-    if [[ "$source_abs" -nt "$copilot_abs" ]]; then
-      STALE+=( "$copilot (source modified more recently: ${source_abs#$REPO_ROOT/})" )
+    local source_abs
+    source_abs="$(source_for "$copilot")"
+    if [[ -n "$source_abs" ]]; then
+      MISSING+=( "$copilot (source: ${source_abs#$REPO_ROOT/})" )
+    else
+      MISSING+=( "$copilot" )
     fi
   fi
 }
 
-check_one "$EXPECTED_REPO_INSTRUCTION"
+check_one "$EXPECTED_AGENTS_MD"
 for f in "${EXPECTED_PROMPTS[@]}"; do check_one "$f"; done
-for f in "${EXPECTED_INSTRUCTIONS[@]}"; do check_one "$f"; done
-for f in "${EXPECTED_CHATMODES[@]}"; do check_one "$f"; done
+for f in "${EXPECTED_AGENTS[@]}"; do check_one "$f"; done
 
 # Orphan check: Copilot files whose source no longer exists.
 if [[ -d "$REPO_ROOT/.github/prompts" ]]; then
@@ -163,20 +142,22 @@ if [[ -d "$REPO_ROOT/.github/prompts" ]]; then
   done < <(find "$REPO_ROOT/.github/prompts" -name 'specflow-*.prompt.md' -print0 2>/dev/null)
 fi
 
-if [[ -d "$REPO_ROOT/.github/instructions" ]]; then
+if [[ -d "$REPO_ROOT/.github/agents" ]]; then
   while IFS= read -r -d '' f; do
-    rel=".github/instructions/$(basename "$f")"
+    rel=".github/agents/$(basename "$f")"
     src="$(source_for "$rel")"
     [[ -f "$src" ]] || ORPHAN+=( "$rel (no matching source)" )
-  done < <(find "$REPO_ROOT/.github/instructions" -name 'specflow-*.instructions.md' -print0 2>/dev/null)
+  done < <(find "$REPO_ROOT/.github/agents" -name '*.agent.md' -print0 2>/dev/null)
 fi
 
-if [[ -d "$REPO_ROOT/.github/chatmodes" ]]; then
-  while IFS= read -r -d '' f; do
-    rel=".github/chatmodes/$(basename "$f")"
-    src="$(source_for "$rel")"
-    [[ -f "$src" ]] || ORPHAN+=( "$rel (no matching source)" )
-  done < <(find "$REPO_ROOT/.github/chatmodes" -name '*.chatmode.md' -print0 2>/dev/null)
+# Reject leftover .github/instructions/ — Option C deleted that layer.
+if [[ -d "$REPO_ROOT/.github/instructions" ]]; then
+  ORPHAN+=( ".github/instructions/ (directory removed in Option C — delete entirely)" )
+fi
+
+# Reject leftover copilot-instructions.md — AGENTS.md replaced it.
+if [[ -f "$REPO_ROOT/.github/copilot-instructions.md" ]]; then
+  ORPHAN+=( ".github/copilot-instructions.md (replaced by AGENTS.md at repo root)" )
 fi
 
 # ----------------------------------------------------------------------
@@ -185,33 +166,22 @@ fi
 
 DRIFT=0
 if [[ ${#MISSING[@]} -gt 0 ]]; then
-  echo "Missing Copilot files (need to be created):"
+  echo "Missing files (need to be created):"
   printf '  %s\n' "${MISSING[@]}"
   echo
   DRIFT=1
 fi
 
 if [[ ${#ORPHAN[@]} -gt 0 ]]; then
-  echo "Orphan Copilot files (no matching canonical source — delete or restore source):"
+  echo "Orphan files (no matching canonical source — delete or restore source):"
   printf '  %s\n' "${ORPHAN[@]}"
   echo
   DRIFT=1
 fi
 
-if [[ ${#STALE[@]} -gt 0 ]]; then
-  echo "Stale Copilot files (source modified more recently — review and update by hand):"
-  printf '  %s\n' "${STALE[@]}"
-  echo
-  echo "Note: this script does NOT auto-translate prose. Each Copilot file is"
-  echo "hand-authored because Copilot's tool surface (#codebase, #editFiles, etc.)"
-  echo "differs from Claude Code's Skill / Agent / Bash tools. Open the source,"
-  echo "open the Copilot file, reconcile by hand."
-  echo
-  DRIFT=1
-fi
-
 if [[ $DRIFT -eq 0 ]]; then
-  echo "Copilot layer in sync with canonical sources."
+  echo "Copilot layer in sync with canonical sources (presence check)."
+  echo "Body drift impossible — prompts reference skills/ via #file: in place of inlining."
   exit 0
 fi
 

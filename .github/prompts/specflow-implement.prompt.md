@@ -17,76 +17,55 @@ Implement a specflow task using TDD. Read the Prompt Contract, move the task to 
 
 ## Resolve the task
 
-**If the input is a number (issue number):**
+- **If the input is a number** (issue number) — run `gh issue view <number> --repo <owner>/<repo> --json body,title,labels,milestone,projectItems` and extract the Prompt Contract from the body.
+- **If the input is `CONTRACT-###`** — read the latest receipt under `docs/specflow/published/` to find the matching issue number; if no receipt exists, read the contract doc directly under `docs/specflow/contracts/`. Extract the Prompt Contract.
 
-```bash
-gh issue view <number> --repo <owner>/<repo> --json body,title,labels,milestone,projectItems
-```
+## Validate state (reject out-of-order implementations)
 
-Extract the Prompt Contract from the issue body.
+- **Done** → STOP. *"This task is already complete."*
+- **In Progress (Triad Active)** → ask: *"This task is already In Progress. Resume?"*. Continue on yes.
+- **HITL Review** → STOP. *"This task is awaiting HITL review, not implementation."*
+- **Icebox** → warn: *"This task hasn't been moved to To Do yet. Implement anyway?"*. Continue on yes.
+- **To Do (Ready)** → proceed.
 
-**If the input is a CONTRACT-### ID:**
+## Kanban transition
 
-1. Read the latest receipt file under `docs/specflow/published/` to find the matching issue number.
-2. If no receipt exists, read the contracts doc directly under `docs/specflow/contracts/`.
-3. Extract the Prompt Contract.
+Move the task to **In Progress (Triad Active)** using the procedure in `#file:skills/kanban/SKILL.md`. Auto-move — no confirmation needed; invoking `/specflow-implement` is the confirmation.
 
-## Validate state
+## TDD workflow
 
-Check the task's current Kanban column and reject implementations that are out of order:
+The Prompt Contract maps to TDD as: **FAILURE CONDITIONS** → RED tests, **CONSTRAINTS** → architectural boundaries, **FORMAT** → file outputs, **GOAL** → acceptance criterion. The contract's CONSTRAINTS already carry SCOPE-001..006 from `.specflow/config.md`.
 
-- **Done** — STOP. *"This task is already complete."*
-- **In Progress (Triad Active)** — ask: *"This task is already In Progress. Resume?"*. Continue on yes.
-- **HITL Review** — STOP. *"This task is awaiting HITL review, not implementation."*
-- **Icebox** — warn: *"This task hasn't been moved to To Do yet. Implement anyway?"*. Continue on yes.
-- **To Do (Ready)** — proceed.
+Workflow selection (in order):
 
-## Auto-move to In Progress
+a. **If `/triad` is available** in the project — invoke it with the full Prompt Contract (including SCOPE-001..006) as the task specification. **Preferred.**
+b. **Else if `superpowers:test-driven-development` is available** — fall back to it with the same input.
+c. **Else (Copilot-only fallback)** — self-drive RED → GREEN → REFACTOR using `#findTestFiles` to locate or create test files, `#changes` and `#problems` to inspect the diff and lint output, and `#editFiles` to apply changes. Same rigour as triad: write failing tests first, make them pass with the smallest change, then refactor under SCOPE-001..006.
 
-Move the task to "In Progress (Triad Active)" using the same procedure as `/specflow-status move`. Auto-move — no confirmation needed; the user already confirmed by invoking implement.
+## REFACTOR gate (SCOPE-001..006 enforcement)
 
-## Handoff to TDD
+At REFACTOR, apply:
 
-Extract the Prompt Contract sections and treat them as the task specification:
+- < 30 min finding touching files already in the PR diff → **fix inline** (present to HITL as *applied*, not as follow-up).
+- Finding in a file **outside the PR diff** → **SKIP** (note as *out of scope — untouched file* in the audit report; no follow-up issue).
+- Style preference with no correctness impact → **SKIP permanently**.
+- Genuine spec gap → **pause and surface to owner** for `/specflow-specify` routing.
+- Audit report MUST end with `New issues recommended: [count]` — target 0. Every count > 0 item needs a justification.
+- Before recommending any new issue, run `gh issue list --search "<keywords>" --state open` (SCOPE-003).
 
-- **FAILURE CONDITIONS** become the RED phase test specifications.
-- **CONSTRAINTS** become the architectural boundaries.
-- **FORMAT** defines the exact file outputs.
-- **GOAL** is the acceptance criterion.
+## HITL gate
 
-### Scope Discipline (REFACTOR phase — pass verbatim to the TDD workflow)
+1. Move the task to **HITL Review** using `#file:skills/kanban/SKILL.md`.
+2. Present the REFACTOR plan with the `New issues recommended: [count]` tally and the SCOPE-003 dedupe check output.
+3. STOP and wait for owner approval.
 
-The contract's CONSTRAINTS block already carries SCOPE-001..006 from `.specflow/config.md`. The TDD orchestrator MUST apply these rules at the REFACTOR gate:
+## After approval
 
-- A finding fixable in **< 30 min** touching files **already in the PR diff** → **fix inline**. Present to HITL as "applied", not as a follow-up.
-- A finding in a file **outside the PR diff** → **SKIP**. Note as *"out of scope (untouched file)"* in the audit report. Do not recommend a follow-up issue.
-- A **style preference** with no correctness impact → **SKIP permanently**. Do not surface at the HITL gate.
-- A **genuine spec gap** → **pause and surface to the owner** for `/specflow-specify` routing. Do not file a standalone issue.
-- The REFACTOR audit report MUST end with `New issues recommended: [count]` — target **0**. Each count > 0 item must include a justification for why it cannot be fixed inline.
-
-### TDD workflow selection (check in this order)
-
-a. If the project has a `/triad` command available (the multi-agent TDD orchestrator — DESIGN → RED → GREEN → REFACTOR → QUALITY) — invoke `/triad` with the full Prompt Contract (including SCOPE-001..006) as the task specification. This is the preferred workflow.
-
-b. Only if `/triad` does NOT exist — fall back to the equivalent `superpowers:test-driven-development` flow.
-
-c. If neither is available — drive RED → GREEN → REFACTOR yourself using `#findTestFiles` to locate or create test files, `#changes` and `#problems` to review the diff and lint output, and `#editFiles` to apply changes. Keep the same rigour: write failing tests first, make them pass with the smallest change, then refactor with SCOPE-001..006 applied.
-
-## REFACTOR HITL gate
-
-When the TDD workflow reaches the REFACTOR gate:
-
-1. Move the task to **HITL Review**.
-2. Present the REFACTOR plan, including the `New issues recommended: [count]` tally. If count > 0, require a one-line justification per item before approval.
-3. Before presenting any recommended new issue, confirm the orchestrator ran `gh issue list --search "<keywords>" --state open` (SCOPE-003). If not, run it now and dedupe.
-4. STOP and wait for owner approval.
-
-## After REFACTOR approval
-
-- The task stays in **HITL Review** until the user explicitly marks it Done after merge.
+- Task stays in **HITL Review** until the user marks it Done after merge.
 - Print: *"Task #{number} is in HITL Review. After merging, run: `/specflow-status move {number} Done`"*.
 
 ## Reference
 
-- Kanban transitions and move semantics: `.github/instructions/specflow-kanban.instructions.md`.
-- Contract structure (GOAL / CONSTRAINTS / FORMAT / FAILURE CONDITIONS): `.github/instructions/specflow-contract-writer.instructions.md`.
+- Kanban transitions: `skills/kanban/SKILL.md`.
+- Contract structure: `skills/contract-writer/SKILL.md`.
+- Repo-wide rules: `AGENTS.md`.

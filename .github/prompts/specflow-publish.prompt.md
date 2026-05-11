@@ -12,56 +12,36 @@ Publish a specflow plan to GitHub: create milestones, issues, sub-issues, and pr
 
 ## Preconditions
 
-1. Check `.specflow/config.md`.
-   - **Exists** — read it; announce *"Loaded [project name] config"*.
-   - **Missing** — STOP. *"⚠ Cannot publish without `.specflow/config.md`. The publisher needs owner, repo, and project-number. Run `/specflow-init` to generate config from your project."*
-2. Verify `gh` CLI is authenticated. Run `gh auth status` in the terminal. If not authenticated, STOP and tell the user to run `gh auth login`.
-3. If the input is empty, look at `docs/specflow/plans/`:
-   - Exactly one file (besides `.gitkeep`) → use it automatically.
-   - Multiple → list and ask which.
-   - None → tell the user to run `/specflow-plan` first.
-4. If the input is provided but the file does not exist, tell the user.
+1. Check `.specflow/config.md`. If missing, STOP — *"⚠ Cannot publish without `.specflow/config.md`. The publisher needs owner, repo, and project-number. Run `/specflow-init` first."*
+2. Verify `gh` CLI is authenticated (`gh auth status`). If not, STOP and tell the user to run `gh auth login`.
+3. If the input is empty, look under `docs/specflow/plans/`: one file (besides `.gitkeep`) → use it; multiple → list and ask; none → tell the user to run `/specflow-plan` first.
 
-## CRITICAL safety rule
+## CRITICAL safety rules (non-negotiable)
 
-This command creates **real GitHub issues, milestones, and project items**. You MUST show a full preview of every `gh` command and obtain **explicit user confirmation** before executing any of them. Never skip the confirmation gate.
+1. **NEVER execute without preview confirmation.** Show every `gh` command first; wait for explicit `yes`.
+2. **NEVER force-create.** If an item already exists, SKIP it. Re-running must be safe (idempotent).
+3. **ALWAYS write the receipt** — even on abort, failure, or partial publish.
+4. **NEVER delete or modify existing issues.** Only `addSubIssue` against existing parents.
+5. **All created issues get the `specflow` label** (for filter and idempotency). Task issues additionally get an effort label (XS/S/M/L).
 
 ## Procedure
 
-1. **Read the plan.** Parse the Vision → Epic → Feature → Task hierarchy. Extract every CONTRACT-### with its full Prompt Contract body, dependencies, effort estimate, and Feature / Epic placement.
-2. **Read the config** for `owner`, `repo`, `github-project-id`, `github-project-number`, Domain Labels, Epic Definitions, and Kanban Columns.
-3. **Reverse-search existing issues (SCOPE-003).** For each planned issue, run `gh issue list --search "<keywords>" --state open --repo <owner>/<repo>` to detect duplicates. Surface any matches in the preview so the owner can decide to dedupe.
-4. **Build the preview.** Render every operation as the `gh` command that will execute it, in dependency order:
-   - Milestones (one per Epic from config) — `gh api repos/<owner>/<repo>/milestones`.
-   - Pinned Vision issue (optional, if the plan calls for one).
-   - Feature issues — `gh issue create ... --milestone <epic> --label <domain-label>`.
-   - Task sub-issues — created and linked via the GraphQL `addSubIssue` mutation against the parent Feature issue.
-   - Project item additions — `gh project item-add <project-number> --owner <owner> --url <issue-url>`.
-   - Initial Kanban column for every item: **Icebox**.
-5. **HITL gate.** Present the preview as a single block of `gh` commands plus a counts summary (`N milestones, M features, P tasks, Q duplicates flagged`). Ask: *"Proceed? [yes / no / preview only]"*.
-   - **yes** → execute in order.
-   - **preview only** → write the preview to a temp file under `docs/specflow/published/<slug>-preview.md` and exit without executing.
-   - **no** → exit cleanly.
-6. **Execute** — only after explicit `yes`. For each operation:
-   - Log the command being run.
-   - Capture the resulting issue number / item ID.
-   - On failure, STOP and surface the partial state; do not retry blindly. Re-runs are the owner's call (the receipt file makes resuming safe).
-7. **Write the receipt.** Path: `docs/specflow/published/<plan-slug>-receipt.md`. The receipt is the canonical CONTRACT-### → GitHub issue number mapping consumed downstream by `/specflow-implement` and `/specflow-status`. Include:
-   - Date of publish.
-   - Plan source path.
-   - Milestone-id table (Epic → milestone number).
-   - Issue table (CONTRACT-### → issue number → URL → milestone → labels).
-   - Sub-issue links recorded (parent Feature → child Tasks).
-   - Project items (issue → project-item-id).
-   - Any duplicates that were intentionally skipped.
-8. **Report.** Print counts created, the receipt path, and the next-step command: *"Run `/specflow-status all` to see the new Icebox."*.
+**Canonical procedure: `#file:skills/github-publisher/SKILL.md`.** Read it and follow it exactly. The skill defines: input parsing, Check A (exact-title + label) + Check B (SCOPE-003 keyword search) duplicate detection, the decision matrix, preview format, `addSubIssue` GraphQL mutation (do NOT use `gh issue edit --add-sub-issue` — unreliable), execute-only-on-explicit-yes gate, partial-failure receipt protocol, and receipt format.
 
-## Boundary rules
+Translate Claude tool references per `#file:AGENTS.md` (§ Tool surface translation). `Bash` invocations are real `gh` commands; the rest become `#codebase` / `#editFiles`.
 
-- Never mutate GitHub state outside the previewed command list.
-- Never create new Epics not present in the config — if the plan lists Unassigned Contracts, surface them as part of the preview and ask the owner whether to file a config update or skip them.
-- SCOPE-003 — duplicate detection is non-optional. If a search would return obviously stale results (e.g., the search keywords are too generic), pause and ask the owner to tighten them rather than producing duplicates silently.
+## HITL gate (mandatory)
+
+Preview ends with: *"Proceed? [yes / milestones-only / preview-only / no]"*.
+- **yes** → execute every command in order.
+- **milestones-only** → create only milestones; skip features, tasks, and project items.
+- **preview-only** → write preview to `docs/specflow/published/<slug>-preview.md` and exit.
+- **no** → abort cleanly; write no receipt.
+
+**STOP HERE and wait** until the user answers one of the four. Never proceed on an ambiguous response.
 
 ## Reference
 
-Deep procedure (publish-receipt template, label-and-milestone resolution): the procedure is enforced inline in this prompt — there is no separate `github-publisher.instructions.md` because the steps map directly to `gh` invocations and the receipt format. Cross-references: `.github/instructions/specflow-roadmap-planner.instructions.md` for the source plan shape.
+- Canonical procedure: `skills/github-publisher/SKILL.md`.
+- gh patterns and column field IDs: `skills/github-publisher/references/`.
+- Repo-wide rules: `AGENTS.md`.

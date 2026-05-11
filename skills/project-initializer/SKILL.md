@@ -20,10 +20,10 @@ config files, or explicit user input.
 
 Read these files in order (skip any that don't exist):
 
-1. **CLAUDE.md** (or AGENTS.md) — project constitution, stack, rules, architecture
-2. **package.json** / **go.mod** / **Cargo.toml** — project name, language stack
+1. **CLAUDE.md** / **AGENTS.md** — project constitution, stack, rules, architecture
+2. **Project manifests** — project name, language stack, build system (see § Language Detection Table below)
 3. **README.md** — project description
-4. **.github/** — workflows, issue templates (hints at labels and conventions)
+4. **.github/** / **.ai/** — workflows, issue templates (hints at labels and conventions)
 5. **docs/** — specification documents (scan for `*.md` files)
 6. **$ARGUMENTS** — user-provided project description (if any)
 
@@ -35,6 +35,55 @@ git remote get-url origin 2>/dev/null
 gh repo view --json owner,name,projectsV2 2>/dev/null
 ```
 
+### Language Detection Table
+
+Detect **every** manifest present — presence is signal even when contents can't be parsed. Multiple manifests at the repo root = polyglot / monorepo (record both stacks; pick a primary via the heuristic below).
+
+| Manifest file(s) | Language / stack | Project name extraction |
+|---|---|---|
+| `package.json` | JavaScript / Node.js (TypeScript if `tsconfig.json` also present) | `"name"` field |
+| `tsconfig.json` | TypeScript (companion — usually with package.json) | use `package.json` name |
+| `deno.json` / `deno.jsonc` | TypeScript / JavaScript (Deno) | `"name"` field |
+| `pyproject.toml` | Python (Poetry / PEP 621) | `[project] name` or `[tool.poetry] name` |
+| `setup.py` / `setup.cfg` | Python (legacy) | `setup(name=...)` or `[metadata] name =` |
+| `requirements.txt` / `Pipfile` | Python (no name in file) | directory name |
+| `go.mod` | Go | `module <path>` — last path segment |
+| `Cargo.toml` | Rust | `[package] name =` |
+| `pom.xml` | Java (Maven) | `<artifactId>` (or `<name>` if present) |
+| `build.gradle` / `build.gradle.kts` | Java or Kotlin (Gradle) | `rootProject.name` (from `settings.gradle*`), else directory |
+| `settings.gradle` / `settings.gradle.kts` | Java / Kotlin (multi-module Gradle) | `rootProject.name =` |
+| `CMakeLists.txt` | C / C++ (CMake) | `project(<name> ...)` argument |
+| `Makefile` (no CMake) | C / C++ (Make — last-resort signal) | directory name |
+| `meson.build` | C / C++ (Meson) | `project('<name>', ...)` |
+| `conanfile.txt` / `conanfile.py` | C / C++ (Conan deps) | `name = ` in conanfile.py |
+| `vcpkg.json` | C / C++ (vcpkg deps) | `"name"` field |
+| `*.csproj` / `*.sln` | C# / .NET | filename minus extension |
+| `global.json` | .NET SDK pin | use `.csproj` name |
+| `Gemfile` / `*.gemspec` | Ruby | `.gemspec` `name` field, else directory |
+| `composer.json` | PHP | `"name"` field |
+| `Package.swift` | Swift / SwiftPM | `name:` arg to `Package(...)` |
+| `*.xcodeproj/` / `*.xcworkspace/` | Swift / Objective-C (Xcode) | directory name minus `.xcodeproj` |
+| `mix.exs` | Elixir | `app: :<name>` in `project/0` |
+| `build.sbt` | Scala (sbt) | `name :=` or directory |
+| `pubspec.yaml` | Dart / Flutter | `name:` |
+| `stack.yaml` / `*.cabal` | Haskell | `.cabal` `name:` |
+| `Project.toml` | Julia | `name =` |
+| `dune-project` | OCaml | `(name <x>)` |
+| `build.zig` | Zig | `addExecutable(.{ .name = ... })` |
+| `flake.nix` / `default.nix` | Nix (build descriptor — usually wraps an inner stack) | use inner stack's name |
+| `DESCRIPTION` (R-style fields) / `renv.lock` | R | `Package:` field in `DESCRIPTION` |
+| `*.tf` at root | Terraform / HCL (infra) | directory name |
+| `Dockerfile` | containerization layer (signal, not primary stack) | — |
+
+**Polyglot / monorepo heuristic (which stack is "primary"):**
+
+1. Root manifest beats subdirectory manifest. (`./package.json` > `./services/api/package.json`.)
+2. If multiple manifests at the same level (e.g. `package.json` + `go.mod` at root), the one whose top-level source directory holds the most files wins (`src/`, `lib/`, `cmd/`, etc.).
+3. If still ambiguous, record both stacks and ask the user which is primary for SDD purposes.
+4. Build descriptors (`Dockerfile`, `flake.nix`, `Makefile` alone) are NEVER primary — they wrap or build another stack.
+
+**Output:** record `stack: <primary-language>` in the config; if polyglot, add a `secondary-stack:` line.
+
 ---
 
 ## Step 2: Extract What You Can
@@ -42,7 +91,8 @@ gh repo view --json owner,name,projectsV2 2>/dev/null
 From the gathered context, attempt to fill every config section:
 
 ### Project Identity
-- **name**: from package.json `name`, go.mod module, or CLAUDE.md project name
+- **name**: from the project's primary manifest (see § Language Detection Table for the per-language extraction rule), else CLAUDE.md project name, else repo name from `gh repo view`.
+- **stack**: the primary language/stack detected. Use the form `<language> (<build tool / runtime>)` when relevant (e.g. `Python (Poetry)`, `Java (Maven)`, `C++ (CMake)`, `TypeScript (Node.js)`). For polyglot repos, additionally record `secondary-stack:` lines.
 - **owner**: from git remote URL or `gh repo view`
 - **repo**: from git remote URL or `gh repo view`
 - **github-project-id**: from `gh project list --owner {owner} --format json`
@@ -123,6 +173,8 @@ Write to `.specflow/config.md`:
 
 ## Project Identity
 - name: {project-name}
+- stack: {primary-language-stack, e.g. "TypeScript (Node.js)", "Python (Poetry)", "Java (Maven)"}
+- secondary-stack: {optional — for polyglot repos, additional stacks detected}
 - owner: {github-owner}
 - repo: {github-repo}
 - github-project-id: {PVT_...}
@@ -232,7 +284,7 @@ specflow config {created / updated}.
 Output: .specflow/config.md
 
 Sections populated:
-✓ Project Identity: {owner}/{repo}
+✓ Project Identity: {owner}/{repo} — stack: {detected-stack}
 ✓ Spec Documents: {N} documents linked
 ✓ Epic Definitions: {M} epics defined
 ✓ Domain Labels: {P} labels

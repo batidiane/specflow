@@ -1,8 +1,13 @@
 # specflow
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin for **Specification-Driven Development (SDD)** that also ships a Karpathy-style LLM-curated engineering wiki.
+A **Specification-Driven Development (SDD)** toolkit for AI-assisted teams. specflow turns natural language into EARS requirements, wraps them in four-section Prompt Contracts, publishes them into a Vision → Epic → Feature → Task hierarchy on GitHub, drives TDD with explicit human-in-the-loop gates, and distils every cycle into an LLM-curated engineering wiki.
 
-specflow turns natural language into unambiguous requirements, wraps them in executable Prompt Contracts, organizes them into a GitHub-native hierarchy, tracks everything through a Kanban workflow, and distils the resulting cycles into a curated second brain — all without leaving your terminal.
+It ships two ways:
+
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin** — install with `/plugin install`, get nine `/specflow:*` slash-commands. See [Install (Claude Code)](#install-claude-code).
+- **GitHub Copilot customization layer** — install with a `curl ... install.sh | bash` one-liner, get matching `/specflow-*` Copilot prompts and a `wiki-curator` custom agent. See [Install (GitHub Copilot)](#install-github-copilot).
+
+The same canonical skills (`skills/<name>/SKILL.md`) drive both runtimes — no duplicated logic.
 
 ## Status & Scope
 
@@ -88,7 +93,7 @@ Every `.specflow/config.md` carries a standard `## Scope Discipline Constraints`
 
 `/specflow:init` writes these into your config automatically. If you run it against an existing config that predates them, update mode will flag the missing block as a required update. The suggested CLAUDE.md §Development Rules mirror is printed after init — apply it manually.
 
-## Installation
+## Install (Claude Code)
 
 From inside Claude Code:
 
@@ -97,7 +102,7 @@ From inside Claude Code:
 /plugin install specflow@specflow
 ```
 
-The first command registers the marketplace; the second installs the plugin.
+The first command registers the marketplace; the second installs the plugin. After install, the nine `/specflow:*` commands appear in the slash menu.
 
 To share specflow with your team via project settings, add it to `.claude/settings.json`:
 
@@ -117,7 +122,9 @@ To share specflow with your team via project settings, add it to `.claude/settin
 }
 ```
 
-## GitHub Copilot support
+Current plugin version: `1.1.0` (see `.claude-plugin/plugin.json`).
+
+## Install (GitHub Copilot)
 
 specflow follows the **superpowers single-source-of-truth pattern**: skills are the payload, every agent gets a thin platform wrapper. There is no duplication of skill bodies into Copilot-specific instruction files.
 
@@ -133,13 +140,15 @@ commands/*.md                          # Claude Code slash-command wrappers
 .github/agents/wiki-curator.agent.md   # Copilot wiki-curator wrapper
 ```
 
-In the source repo, prompts reference `#file:skills/<name>/SKILL.md`. The Copilot installer (below) rewrites those references to `#file:.specflow/skills/<name>/SKILL.md` when it moves the skill payload into the hidden `.specflow/` namespace at the target — same content, different path. Drift between prompt and skill is structurally impossible at both layouts.
+In the source repo, prompts reference `#file:skills/<name>/SKILL.md`. The Copilot installer (below) rewrites those references to `#file:.specflow/skills/<name>/SKILL.md` when it moves the skill payload into the hidden `.specflow/` namespace at the target — same content, different path. Drift between prompt and skill is structurally impossible at either layout.
 
 **Quick install (one-liner).** From the target project's repo root:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash
 ```
+
+Requires `git`, `bash` 3.2+, and `perl` (standard on dev machines).
 
 Default install (`--platform=copilot`) drops a **clean hidden layout**:
 
@@ -176,7 +185,13 @@ curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh 
 curl -fsSL https://raw.githubusercontent.com/batidiane/specflow/main/install.sh | bash -s -- --force
 ```
 
-Full options: `bash install.sh --help`. Requires `git` and `perl` (standard on dev machines).
+Full options: `bash install.sh --help`.
+
+**Conflict handling.** The installer is designed to be safe to drop into a repo that already has Copilot customizations:
+
+- `AGENTS.md` — specflow content is merged inside `<!-- BEGIN specflow ... -->` / `<!-- END specflow -->` marker comments. Your existing content outside the markers is preserved verbatim. The first time the block is appended, a `AGENTS.md.bak` backup is written. Re-runs refresh only the marked region in place.
+- `.github/prompts/` and `.github/agents/` — installed **per file**, never as a directory wipe. Only the nine `specflow-*.prompt.md` files and `wiki-curator.agent.md` are touched. Your `.github/workflows/`, `CODEOWNERS`, issue templates, and unrelated prompts/agents are never read or modified.
+- Other directories (`.specflow/`, `skills/`, `agents/`, etc.) — directory-level skip if they already exist. Pass `--force` to overwrite.
 
 **Layout choice by platform:**
 
@@ -219,7 +234,7 @@ Full options: `bash install.sh --help`. Requires `git` and `perl` (standard on d
 /specflow:init
 ```
 
-Analyzes your project's CLAUDE.md, repo structure, and GitHub metadata to generate `.specflow/config.md`. Asks targeted questions for anything it can't infer.
+Analyzes your project's CLAUDE.md, repo structure, and GitHub metadata to generate `.specflow/config.md`. Detects 25+ language stacks (with a polyglot heuristic for mixed-language repos) and asks targeted questions for anything it can't infer.
 
 ### 2. Formalize requirements
 
@@ -512,6 +527,12 @@ specflow is designed to compose with existing tools:
 - [superpowers](https://github.com/obra/superpowers) — Claude Code skills framework; specflow is fully compatible and can delegate to it
 - [triad](https://github.com/batidiane/triad) — companion multi-agent TDD orchestrator; `/specflow:implement` prefers it when available
 
+## Contributing
+
+Issues and pull requests are welcome. Because specflow is a personal experiment first (see [Status & Scope](#status--scope)), expect opinionated review and a bias toward keeping the surface area small. If you want to add a new skill, a new wiki category, or a new command, open an issue first so we can discuss whether it belongs in core or in your own fork.
+
+Every change to the canonical sources (`skills/`, `agents/`, `commands/`, `.github/prompts/`, `AGENTS.md`) propagates to both the Claude Code plugin and the Copilot installer — there is no separate per-platform branch to maintain.
+
 ## License
 
-MIT
+[MIT](./LICENSE)
